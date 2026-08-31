@@ -1,0 +1,12 @@
+{
+  "name": "Vale Basket Manager",
+  "short_name": "VBM",
+  "description": "Basketball management game — Foundation Part 1",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#030914",
+  "theme_color": "#071326",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
