@@ -12,6 +12,7 @@
     "data:extract": "node scripts/extract-nba-license-pack.mjs",
     "assets:official": "node scripts/download-official-assets.mjs",
     "typecheck": "tsc --noEmit",
+    "test:foundation": "node scripts/verify-foundation.mjs",
     "lint": "oxlint",
     "format": "oxfmt"
   },

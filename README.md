@@ -1,6 +1,6 @@
-# Vale Basket Manager — Parte 1: Fundação
+# VALE BASKET MANAGER — Foundation Completion
 
-Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega cobre a fundação jogável prevista na Bíblia Mestra: seleção de franquia, LicensePack separado, elenco e rotação, calendário inicial, simulação, treino, diretoria e save automático no navegador.
+Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega evolui a Parte 1 sem remover o pacote local de logos, elencos e headshots: criador de manager, save v2, liga viva, calendário de 82 jogos e Game Center por eventos.
 
 ## Conteúdo desta entrega
 
@@ -8,12 +8,28 @@ Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega cobre a funda�
 - 581 atletas listados pela NBA em 31/08/2026: 580 vinculados às franquias e 1 agente livre.
 - Retrato oficial local para os 581 atletas; o site não depende do computador que gerou o ZIP.
 - Temporada identificada como 2026–27.
-- 24 jogos iniciais por carreira, simulação de placar, campanha e evolução financeira.
+- Calendário completo de 82 jogos por franquia (1.230 fixtures estruturais na liga).
+- Game Center com quadra visual, placar, período/relógio/posse, controle de velocidade, play-by-play, box score e simulação por eventos.
+- Ao confirmar seu jogo, todos os jogos da mesma data são processados pela mesma engine e atualizam classificação/estatísticas.
+- Save `v2` com migração segura de save `v1` (registro, orçamento e rotação preservados).
 - Gerenciamento de quinteto e distribuição dos 240 minutos.
 - Plano de treino, química, torcida e painel da diretoria.
 - Autosave via `localStorage`, botão Continuar e instalação como PWA.
 - Fundos originais fornecidos pelo responsável do projeto.
 - Mascotes fictícios restritos ao laboratório Criar Clube.
+- Mercado, scouting/draft DEV, staff, táticas, perfil de atleta, mídia, diretoria, finanças transparentes e idiomas PT/EN/ES.
+
+## Transparência de dados
+
+Contratos, payroll e salary cap que não estão no pacote fornecido aparecem como **DADO NÃO CARREGADO**. Prospectos e staff DEV são marcados como fictícios; atributos de gameplay são estimativas internas, não avaliações oficiais.
+
+## Validar
+
+```bash
+pnpm typecheck
+pnpm build
+pnpm test:foundation
+```
 
 ## Publicar no GitHub Pages
 
