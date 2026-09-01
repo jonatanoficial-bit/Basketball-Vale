@@ -1,6 +1,6 @@
 {
-  "name": "vale-basket-manager-parte-1",
-  "version": "1.0.0",
+  "name": "vale-basket-manager-simulation",
+  "version": "2.0.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -13,6 +13,7 @@
     "assets:official": "node scripts/download-official-assets.mjs",
     "typecheck": "tsc --noEmit",
     "test:foundation": "node scripts/verify-foundation.mjs",
+    "test:simulation": "vite build --ssr scripts/simulation-audit.ts --outDir .simulation-audit --emptyOutDir && node .simulation-audit/simulation-audit.js",
     "lint": "oxlint",
     "format": "oxfmt"
   },

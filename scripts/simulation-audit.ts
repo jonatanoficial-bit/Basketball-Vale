@@ -1,0 +1,27 @@
+import rawPack from '../src/data/nba-license-pack.json'
+import { makeCareer } from '../src/domain/career'
+import { createLeagueSchedule } from '../src/domain/league'
+import { simulateFixture } from '../src/domain/matchEngine'
+import { advanceOffseason } from '../src/domain/seasonEngine'
+import { createEconomy, createPlayerModels, developModels, ENGINE_VERSION, evaluateTrade, generateDraftClass } from '../src/domain/simulationData'
+import type { Player, Team } from '../src/domain/types'
+
+const pack = rawPack as unknown as { players: Player[]; teams: Team[] }
+const rotation = pack.players.filter((player) => player.team === pack.teams[0].abbr).sort((a,b) => b.overall-a.overall).slice(0,10).map((player,index) => ({playerId:player.id,minutes:[34,33,31,29,27,23,20,16,15,12][index],role:(index<5?'Starter':index<9?'Rotation':'Reserve') as 'Starter'|'Rotation'|'Reserve'}))
+const tactics = {pace:55,offense:'Equilibrado',defense:'Trocas seletivas',rebounding:'Proteção de aro',focus:'Ataque ao aro'}
+let models = createPlayerModels(pack.players); const economy = createEconomy(pack.players,pack.teams); const first = createLeagueSchedule(pack.teams)[0]
+const a = simulateFixture(first,pack.players,pack.teams[0].abbr,rotation,tactics,false,models); const b = simulateFixture(first,pack.players,pack.teams[0].abbr,rotation,tactics,false,models)
+if (a.checksum !== b.checksum) throw new Error('Determinism failure')
+const teamCounts = Object.fromEntries(pack.teams.map((team) => [team.abbr,0])); createLeagueSchedule(pack.teams).forEach((game) => {teamCounts[game.home]++;teamCounts[game.away]++}); if (Object.values(teamCounts).some((count) => count !== 82)) throw new Error('Schedule integrity failure')
+const lifecycleCareer = makeCareer(pack.teams[0],{name:'Audit Manager',origin:'Brasil',experience:'Teste automatizado',style:'Equilibrado',avatar:'manager-01.png',reputation:50}); const yearTwo = advanceOffseason(lifecycleCareer,pack.players,pack.teams); const activeRosterSizes = pack.teams.map((team) => Object.values(yearTwo.economy.contracts).filter((contract) => contract.team === team.abbr && contract.status === 'active').length); if (yearTwo.generatedPlayers.length !== 30 || activeRosterSizes.some((count) => count < 15 || count > 18)) throw new Error(`Offseason lifecycle failure: ${yearTwo.generatedPlayers.length} rookies, rosters ${activeRosterSizes.join(',')}`)
+const firstPlayer = pack.players.find((player) => player.team === pack.teams[0].abbr)!; const secondPlayer = pack.players.find((player) => player.team === pack.teams[1].abbr)!; const proposal = evaluateTrade(economy,models,[{kind:'player',id:String(firstPlayer.id),team:firstPlayer.team},{kind:'player',id:String(secondPlayer.id),team:secondPlayer.team}],[firstPlayer.team,secondPlayer.team]); if (!proposal.reasons.length) throw new Error('Trade validator failure')
+
+let games = 0; let totalPoints = 0; let overtimeGames = 0; let minScore = 999; let maxScore = 0; const checkpoints: Record<number,{games:number;avgScore:number;minScore:number;maxScore:number;overtimeRate:number;prospects:number}> = {}
+for (let season = 1; season <= 50; season += 1) {
+  const schedule = createLeagueSchedule(pack.teams,season)
+  for (const fixture of schedule) { const result = simulateFixture(fixture,pack.players,pack.teams[0].abbr,rotation,tactics,false,models); games += 1; totalPoints += result.homeScore + result.awayScore; overtimeGames += result.overtime ? 1 : 0; minScore = Math.min(minScore,result.homeScore,result.awayScore); maxScore = Math.max(maxScore,result.homeScore,result.awayScore); if (!Number.isFinite(result.homeScore) || !result.checksum) throw new Error(`Corrupt result in season ${season}`) }
+  models = developModels(models,season); const prospects = generateDraftClass(2026+season); if (prospects.length !== 60) throw new Error('Draft class failure')
+  if ([1,5,10,25,50].includes(season)) checkpoints[season] = {games,avgScore:Math.round(totalPoints/games/2*10)/10,minScore,maxScore,overtimeRate:Math.round(overtimeGames/games*10000)/100,prospects:prospects.length}
+}
+const finalAverage = totalPoints / games / 2; if (finalAverage < 88 || finalAverage > 126) throw new Error(`Scoring calibration failure: ${finalAverage.toFixed(1)}`); if (minScore < 30 || maxScore > 180) throw new Error(`Score outlier failure: ${minScore}-${maxScore}`)
+console.log(JSON.stringify({engine:ENGINE_VERSION,deterministic:a.checksum===b.checksum,scheduleGames:createLeagueSchedule(pack.teams).length,teamGames:[...new Set(Object.values(teamCounts))],contracts:Object.keys(economy.contracts).length,lifecycle:{rookies:yearTwo.generatedPlayers.length,rosterRange:[Math.min(...activeRosterSizes),Math.max(...activeRosterSizes)]},tradeValidator:proposal,checkpoints},null,2))

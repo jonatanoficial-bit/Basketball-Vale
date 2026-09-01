@@ -1,0 +1,15 @@
+UPLOAD RÁPIDO — GIT BASH
+
+1) Abra o Git Bash e cole:
+
+cd '/c/Users/jonat/Desktop/GAME/¨2026/basquete'
+git pull origin main --rebase
+powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath 'C:\Users\jonat\Documents\Codex\2026-08-31\estou-enviando-biblia\work\vale-basket-manager-parte-1\outputs\VALE-BASKET-MANAGER-PARTE-2-SIMULATION-GITHUB.zip' -DestinationPath 'C:\Users\jonat\Desktop\GAME\¨2026\basquete' -Force"
+git add -A
+git commit -m "Parte 2 Simulation completa"
+git push origin main
+
+2) No GitHub: Settings > Pages > Build and deployment > Source > GitHub Actions.
+
+Site esperado:
+https://jonatanoficial-bit.github.io/Basketball-Vale/

@@ -1,6 +1,6 @@
-# VALE BASKET MANAGER — Foundation Completion
+# VALE BASKET MANAGER — Parte 2: Simulation
 
-Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega evolui a Parte 1 sem remover o pacote local de logos, elencos e headshots: criador de manager, save v2, liga viva, calendário de 82 jogos e Game Center por eventos.
+Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva toda a Foundation da Parte 1 e acrescenta o núcleo SIMULATION: partidas por posses, carreira multitemporada, economia, trocas, draft, playoffs, lesões, desenvolvimento e auditoria de 50 temporadas.
 
 ## Conteúdo desta entrega
 
@@ -9,9 +9,13 @@ Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega evolui a Parte
 - Retrato oficial local para os 581 atletas; o site não depende do computador que gerou o ZIP.
 - Temporada identificada como 2026–27.
 - Calendário completo de 82 jogos por franquia (1.230 fixtures estruturais na liga).
-- Game Center com quadra visual, placar, período/relógio/posse, controle de velocidade, play-by-play, box score e simulação por eventos.
+- Game Center determinístico por posses, com relógio/shot clock, faltas, lances livres, rebotes, turnovers, assistências, tocos, substituições, lesões, prorrogação, play-by-play, box score, métricas avançadas, lineups e shot chart.
 - Ao confirmar seu jogo, todos os jogos da mesma data são processados pela mesma engine e atualizam classificação/estatísticas.
-- Save `v2` com migração segura de save `v1` (registro, orçamento e rotação preservados).
+- Save `v3` com migração segura de saves `v1` e Foundation `v2`.
+- Contratos plurianuais SIMULATION, cap/tax/aprons, agência livre e Trade Machine com execução no save.
+- Temporada regular, playoffs completos em melhor de sete, campeão, offseason e arquivo histórico.
+- Draft anual com 60 prospectos, 30 escolhas automáticas, contratos de novato, classes futuras e histórico.
+- Desenvolvimento, auge, platô, regressão, envelhecimento, aposentadorias, fadiga, condição, prontidão e moral.
 - Gerenciamento de quinteto e distribuição dos 240 minutos.
 - Plano de treino, química, torcida e painel da diretoria.
 - Autosave via `localStorage`, botão Continuar e instalação como PWA.
@@ -21,7 +25,7 @@ Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega evolui a Parte
 
 ## Transparência de dados
 
-Contratos, payroll e salary cap que não estão no pacote fornecido aparecem como **DADO NÃO CARREGADO**. Prospectos e staff DEV são marcados como fictícios; atributos de gameplay são estimativas internas, não avaliações oficiais.
+Nomes, franquias, logos, elencos e 581 retratos vêm do pacote local da temporada 2026–27. Contratos, payroll, atributos, tendências, potencial, draft e regras financeiras gerados para gameplay aparecem como **SIMULATION** ou **DEV FICTÍCIO** e não são dados oficiais.
 
 ## Validar
 
@@ -29,6 +33,7 @@ Contratos, payroll e salary cap que não estão no pacote fornecido aparecem com
 pnpm typecheck
 pnpm build
 pnpm test:foundation
+pnpm test:simulation
 ```
 
 ## Publicar no GitHub Pages
@@ -69,7 +74,8 @@ pnpm run build
 - `public/assets/nba/players`: retratos oficiais.
 - `public/assets/backgrounds`: cenários enviados pelo responsável.
 - `scripts/`: reconstrução auditável do pacote de dados e assets.
-- `docs/COBERTURA-PARTE-1.md`: relação com a Bíblia Mestra.
+- `docs/SIMULATION-COMPLETE.md`: cobertura da Parte 2 da Bíblia Mestra.
+- `docs/STRESS-TEST-50-SEASONS.md`: evidência de 61.500 partidas auditadas.
 
 ## Direitos e atualização de temporada
 
