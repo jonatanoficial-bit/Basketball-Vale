@@ -14,6 +14,7 @@ import {
   GraduationCap,
   Handshake,
   HeartPulse,
+  Landmark,
   LayoutDashboard,
   LineChart,
   Menu,
@@ -89,7 +90,9 @@ type Screen =
   | 'board'
   | 'media'
   | 'profile'
-  | 'licenses';
+  | 'licenses'
+  | 'world'
+  | 'history';
 type CreatorDraft = {
   name: string;
   origin: string;
@@ -134,6 +137,7 @@ const nav = [
       ['draft', 'draft', GraduationCap],
       ['finances', 'finances', CircleDollarSign],
       ['board', 'board', BriefcaseBusiness],
+      ['world', 'world', Landmark],
     ],
   ],
   [
@@ -141,6 +145,7 @@ const nav = [
     [
       ['media', 'media', Newspaper],
       ['profile', 'profile', Award],
+      ['history', 'history', Trophy],
       ['licenses', 'licenses', ShieldCheck],
     ],
   ],
@@ -869,7 +874,9 @@ function App() {
   };
   const activePlayer = ownRoster.find((player) => player.id === playerId);
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${career.world.accessibility.highContrast ? 'high-contrast' : ''} ${career.world.accessibility.reducedMotion ? 'reduced-motion' : ''}`}
+    >
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="brand">
           <span>V</span>
@@ -1103,8 +1110,10 @@ function ScreenContent({
     return <Draft career={career} commit={commit} mode={screen} />;
   if (screen === 'finances') return <Finances career={career} />;
   if (screen === 'board') return <Board career={career} />;
+  if (screen === 'world') return <World career={career} commit={commit} />;
   if (screen === 'media') return <Media career={career} />;
   if (screen === 'profile') return <Profile career={career} />;
+  if (screen === 'history') return <History career={career} />;
   return <Licenses />;
 }
 
@@ -2048,13 +2057,23 @@ function Market({
     const [first, second] = assets;
     next.economy.contracts[Number(first.id)].team = second.team;
     next.economy.contracts[Number(second.id)].team = first.team;
-    next.rotation = next.rotation.filter((entry) => entry.playerId !== Number(first.id));
+    next.rotation = next.rotation.filter(
+      (entry) => entry.playerId !== Number(first.id),
+    );
     if (second.team !== career.teamAbbr) {
-      next.rotation.push({ playerId: Number(second.id), minutes: 14, role: 'Rotation' });
+      next.rotation.push({
+        playerId: Number(second.id),
+        minutes: 14,
+        role: 'Rotation',
+      });
     }
     next.tradeDesk = next.tradeDesk.map((item) =>
       item.id === proposal.id
-        ? { ...item, valid: false, reasons: ['Troca executada e registrada no save.'] }
+        ? {
+            ...item,
+            valid: false,
+            reasons: ['Troca executada e registrada no save.'],
+          }
         : item,
     );
     next.news.unshift({
@@ -2173,7 +2192,10 @@ function Market({
                 <span key={reason}>{reason}</span>
               ))}
               {proposal.valid && (
-                <button className="ghost-button" onClick={() => executeTrade(proposal)}>
+                <button
+                  className="ghost-button"
+                  onClick={() => executeTrade(proposal)}
+                >
                   Confirmar e executar troca
                 </button>
               )}
@@ -2312,19 +2334,17 @@ function Draft({
       {mode === 'draft' && career.draftHistory.length > 0 && (
         <Panel title="Histórico do draft SIMULATION">
           <div className="contract-grid">
-            {career.draftHistory
-              .slice(-30)
-              .map((pick) => (
-                <article key={`${pick.season}-${pick.pick}`}>
-                  <strong>#{pick.pick}</strong>
-                  <span>
-                    <b>{pick.name}</b>
-                    <small>
-                      {pick.team} · {pick.position} · temporada {pick.season}
-                    </small>
-                  </span>
-                </article>
-              ))}
+            {career.draftHistory.slice(-30).map((pick) => (
+              <article key={`${pick.season}-${pick.pick}`}>
+                <strong>#{pick.pick}</strong>
+                <span>
+                  <b>{pick.name}</b>
+                  <small>
+                    {pick.team} · {pick.position} · temporada {pick.season}
+                  </small>
+                </span>
+              </article>
+            ))}
           </div>
         </Panel>
       )}
@@ -2451,6 +2471,216 @@ function Board({ career }: { career: CareerV2 }) {
           </ul>
         </Panel>
       </div>
+    </>
+  );
+}
+function World({
+  career,
+  commit,
+}: {
+  career: CareerV2;
+  commit: (next: CareerV2) => void;
+}) {
+  const world = career.world;
+  const change = (key: 'marketing' | 'ticketPrice', value: number) => {
+    const next = structuredClone(career);
+    next.world[key] = value;
+    const delta =
+      key === 'marketing'
+        ? Math.round((value - world.marketing) * 180000)
+        : Math.round((value - world.ticketPrice) * world.arena.capacity * 0.42);
+    next.budget += delta;
+    next.world.ledger.unshift({
+      id: `world-${Date.now()}`,
+      date: next.currentDate,
+      label:
+        key === 'marketing'
+          ? 'Campanha de marketing SIMULATION'
+          : 'Revisão de ticket pricing SIMULATION',
+      amount: delta,
+      kind: delta >= 0 ? 'receita' : 'despesa',
+    });
+    commit(next);
+  };
+  const renovate = () => {
+    if (world.arena.condition >= 100 || career.budget < 4_000_000) return;
+    const next = structuredClone(career);
+    next.budget -= 4_000_000;
+    next.world.arena.condition = Math.min(100, next.world.arena.condition + 12);
+    next.world.arena.level = Math.min(5, next.world.arena.level + 1);
+    next.world.ledger.unshift({
+      id: `arena-${Date.now()}`,
+      date: next.currentDate,
+      label: 'Reforma da arena SIMULATION',
+      amount: -4_000_000,
+      kind: 'despesa',
+    });
+    commit(next);
+  };
+  const toggle = (key: keyof typeof world.accessibility) => {
+    const next = structuredClone(career);
+    next.world.accessibility[key] = !next.world.accessibility[key];
+    commit(next);
+  };
+  return (
+    <>
+      <PageTitle
+        kicker="FRANCHISE WORLD"
+        title="Franquia, arena e comunidade"
+        copy="Receitas, despesas e decisões abaixo são geradas pelo mundo SIMULATION e persistem no seu save."
+      />
+      <div className="finance-grid">
+        <StatCard
+          label="Valuation SIM"
+          value={money(world.valuation)}
+          detail={`Mercado ${world.marketSize}`}
+          icon={Landmark}
+        />
+        <StatCard
+          label="Satisfação do proprietário"
+          value={`${world.ownerSatisfaction}%`}
+          detail={`${world.owner} · segurança ${world.jobSecurity}%`}
+          icon={BriefcaseBusiness}
+        />
+        <StatCard
+          label="Arena"
+          value={`${world.arena.condition}%`}
+          detail={`${world.arena.name} · ${world.arena.capacity.toLocaleString('pt-BR')} lugares`}
+          icon={Trophy}
+        />
+      </div>
+      <div className="office-grid">
+        <Panel title="Receita e público">
+          <label className="load-control">
+            Marketing <b>{world.marketing}</b>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={world.marketing}
+              onChange={(e) => change('marketing', Number(e.target.value))}
+            />
+          </label>
+          <label className="load-control">
+            Ticket médio <b>${world.ticketPrice}</b>
+            <input
+              type="range"
+              min="35"
+              max="180"
+              value={world.ticketPrice}
+              onChange={(e) => change('ticketPrice', Number(e.target.value))}
+            />
+          </label>
+          <p>
+            Season tickets: {world.seasonTickets.toLocaleString('pt-BR')} ·
+            Premium seats: {world.premiumSeats} · Merchandise SIM:{' '}
+            {money(world.merchandise)}.
+          </p>
+          <button className="gold-button" onClick={renovate}>
+            Reformar arena · $4M
+          </button>
+        </Panel>
+        <Panel title="Acessibilidade e conforto">
+          <p>
+            Preferências persistem apenas neste save e não alteram a simulação
+            esportiva.
+          </p>
+          {(
+            ['reducedMotion', 'highContrast', 'screenReaderHints'] as const
+          ).map((key) => (
+            <button
+              key={key}
+              className="ghost-button"
+              onClick={() => toggle(key)}
+            >
+              {world.accessibility[key] ? '✓ ' : ''}
+              {key === 'reducedMotion'
+                ? 'Reduzir animações'
+                : key === 'highContrast'
+                  ? 'Alto contraste'
+                  : 'Dicas para leitor de tela'}
+            </button>
+          ))}
+        </Panel>
+      </div>
+      <Panel title="Finance ledger · SIMULATION">
+        <div className="news-feed">
+          {world.ledger.slice(0, 12).map((entry) => (
+            <article key={entry.id}>
+              <span>
+                {dateLabel(entry.date)} · {entry.kind.toUpperCase()}
+              </span>
+              <b>{entry.label}</b>
+              <p className={entry.amount >= 0 ? 'health' : 'health bad'}>
+                {entry.amount >= 0 ? '+' : ''}
+                {money(entry.amount)}
+              </p>
+            </article>
+          ))}
+        </div>
+      </Panel>
+    </>
+  );
+}
+function History({ career }: { career: CareerV2 }) {
+  return (
+    <>
+      <PageTitle
+        kicker="LEGADO"
+        title="Arquivo da franquia"
+        copy="Campeões, drafts, aposentadorias e temporadas concluídas preservados pelo save."
+      />
+      <div className="office-grid">
+        <Panel title="Season Archive">
+          {career.seasonArchives.length ? (
+            career.seasonArchives.map((season) => (
+              <article className="news-feed" key={season.season}>
+                <b>{season.season}</b>
+                <p>
+                  Campeão: {season.champion ?? '—'} · {season.standings.length}{' '}
+                  franquias arquivadas.
+                </p>
+              </article>
+            ))
+          ) : (
+            <p>Conclua uma temporada para registrar o primeiro capítulo.</p>
+          )}
+        </Panel>
+        <Panel title="Hall of Fame / aposentados">
+          <p>
+            <b>{career.retiredPlayerIds.length}</b> atletas aposentados
+            registrados.
+          </p>
+          <p>
+            O histórico de draft contém {career.draftHistory.length} escolhas e
+            as trocas aprovadas permanecem no log de carreira.
+          </p>
+          <p>
+            Record book:{' '}
+            {career.results ? Object.keys(career.results).length : 0} partidas
+            preservadas nesta temporada.
+          </p>
+        </Panel>
+      </div>
+      <Panel title="Draft history">
+        <div className="contract-grid">
+          {career.draftHistory.length ? (
+            career.draftHistory.slice(-30).map((pick) => (
+              <article key={`${pick.season}-${pick.pick}`}>
+                <strong>#{pick.pick}</strong>
+                <span>
+                  <b>{pick.name}</b>
+                  <small>
+                    {pick.team} · {pick.position} · S{pick.season}
+                  </small>
+                </span>
+              </article>
+            ))
+          ) : (
+            <p>O primeiro draft será incluído após a offseason.</p>
+          )}
+        </div>
+      </Panel>
     </>
   );
 }

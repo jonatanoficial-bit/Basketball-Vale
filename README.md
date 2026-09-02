@@ -1,6 +1,6 @@
-# VALE BASKET MANAGER — Parte 2: Simulation
+# VALE BASKET MANAGER — v3.0 World & Release
 
-Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva toda a Foundation da Parte 1 e acrescenta o núcleo SIMULATION: partidas por posses, carreira multitemporada, economia, trocas, draft, playoffs, lesões, desenvolvimento e auditoria de 50 temporadas.
+Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega final preserva Foundation e Simulation e acrescenta Franchise World, arena, ledger, legado e acessibilidade.
 
 ## Conteúdo desta entrega
 

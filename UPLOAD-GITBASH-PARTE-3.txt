@@ -1,0 +1,21 @@
+UPLOAD RÁPIDO — PARTE 3 (evita o erro de pull com alterações locais)
+
+Abra Git Bash no repositório e execute cada bloco separadamente.
+
+BLOCO 1 — salvar o que já existe e atualizar do GitHub:
+cd '/c/Users/jonat/Desktop/GAME/¨2026/basquete'
+git add -A
+git commit -m "Salvar trabalho local antes da Parte 3"
+git pull origin main --rebase
+
+Se o commit disser "nothing to commit", isso é normal: execute apenas o git pull.
+
+BLOCO 2 — extrair o ZIP:
+powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath 'C:\Users\jonat\Documents\Codex\2026-08-31\estou-enviando-biblia\work\vale-basket-manager-parte-1\outputs\VALE-BASKET-MANAGER-PARTE-3-WORLD-RELEASE-GITHUB.zip' -DestinationPath 'C:\Users\jonat\Desktop\GAME\¨2026\basquete' -Force"
+
+BLOCO 3 — publicar:
+git add -A
+git commit -m "Parte 3 World and Release final"
+git push origin main
+
+Site: https://jonatanoficial-bit.github.io/Basketball-Vale/
