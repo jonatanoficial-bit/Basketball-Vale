@@ -2586,3 +2586,90 @@ body {
   .season-flow { grid-template-columns: 1fr; }
   .season-flow p { grid-column: auto; }
 }
+
+/* V6 · first-run guide, identity studio and Gold Master */
+.tutorial-overlay { position: fixed; z-index: 100; inset: 0; display: grid; grid-template-columns: minmax(260px, 42vw) minmax(320px, 620px); align-items: end; justify-content: center; gap: 0; padding: 5vh 6vw 0; background: radial-gradient(circle at 25% 42%, #1452a566, transparent 32%), linear-gradient(90deg, #01050de8, #041329f0); backdrop-filter: blur(10px); }
+.tutorial-guide { height: min(88vh, 820px); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.tutorial-guide img { width: min(100%, 600px); height: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 25px 42px #000c); }
+.tutorial-card { align-self: center; position: relative; max-width: 620px; padding: clamp(24px, 4vw, 48px); border: 1px solid #efc76566; border-radius: 24px; background: linear-gradient(145deg, #091c35f5, #030914f8); box-shadow: 0 35px 90px #000c, inset 0 1px #fff2; }
+.tutorial-card > span { color: #efc765; font-size: .67rem; font-weight: 900; letter-spacing: .16em; }
+.tutorial-card h2 { margin: 10px 0; font: 800 clamp(2rem, 4vw, 3.5rem)/.98 Barlow Condensed; }
+.tutorial-card p { color: #bdc9db; line-height: 1.65; }
+.tutorial-progress { display: flex; gap: 7px; margin: 22px 0; }
+.tutorial-progress i { width: 30px; height: 4px; border-radius: 8px; background: #fff2; }
+.tutorial-progress i.active { background: linear-gradient(90deg, #397cf5, #efc765); }
+.tutorial-skip { position: absolute; z-index: 2; top: 22px; right: 24px; padding: 9px 13px; border: 1px solid #fff2; border-radius: 10px; color: #d3dcea; background: #07152acc; font-weight: 800; }
+.custom-club-mark { --club-a: #0b2c60; --club-b: #e6b75d; width: 172px; aspect-ratio: 1; position: relative; display: grid; place-items: center; border: 5px solid var(--club-b); border-radius: 30% 30% 48% 48%; background: radial-gradient(circle, color-mix(in srgb, var(--club-a) 64%, white), var(--club-a) 68%); box-shadow: inset 0 0 0 5px #020711, 0 15px 35px #0008; overflow: hidden; }
+.custom-club-mark .vale-brand-logo { width: 68%; opacity: .25; }
+.custom-club-mark > b { position: absolute; font: 900 2.25rem Barlow Condensed; letter-spacing: .06em; color: white; text-shadow: 0 2px 8px #000; }
+.custom-club-mark.small { width: 44px; border-width: 2px; border-radius: 12px; }
+.custom-club-mark.small > b { font-size: .78rem; }
+.custom-club-mark.small .vale-brand-logo { width: 75%; }
+.creator-subtitle { margin: 22px 0 10px; font: 700 1.25rem Barlow Condensed; }
+.career-mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.career-mode { min-height: 128px; padding: 14px; display: grid; align-content: start; gap: 5px; text-align: left; color: #d4ddec; border: 1px solid #ffffff18; border-radius: 13px; background: #ffffff07; }
+.career-mode.selected { border-color: #efc765; background: linear-gradient(135deg, #efc76523, #397cf51a); box-shadow: inset 0 0 0 1px #efc76533; }
+.career-mode span { color: #e6b85c; font-size: .55rem; font-weight: 900; letter-spacing: .11em; }
+.career-mode b { font: 800 1.12rem Barlow Condensed; }
+.career-mode small { color: #93a3b9; line-height: 1.35; }
+.club-studio { display: grid; grid-template-columns: minmax(300px, .82fr) minmax(440px, 1.18fr); gap: 18px; }
+.club-preview { min-height: 560px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 1px solid #efc76545; border-radius: 22px; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--club-a) 75%, transparent), #020711 67%); box-shadow: inset 0 0 90px #0009; }
+.club-preview h1 { max-width: 90%; margin: 12px 0 5px; font: 900 clamp(2.5rem, 5vw, 4.6rem)/.85 Barlow Condensed; text-transform: uppercase; }
+.club-preview > span { margin-top: 24px; color: var(--club-b); font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.club-preview p,.club-preview small { color: #b8c5d7; }
+.record-wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.challenge-list,.achievement-grid,.legacy-timeline,.checkpoint-list { display: grid; gap: 10px; }
+.challenge-list article,.achievement-grid article,.legacy-timeline article,.checkpoint-list article { padding: 14px; border: 1px solid #ffffff12; border-radius: 12px; background: #ffffff05; }
+.challenge-list article > span,.legacy-timeline span { color: #efc765; font-size: .62rem; font-weight: 900; letter-spacing: .1em; }
+.challenge-list article > b { display: block; margin-top: 3px; font: 700 1.05rem Barlow Condensed; }
+.challenge-list p,.achievement-grid p,.legacy-timeline p { color: #9eacc0; font-size: .73rem; }
+.challenge-list em { color: #6bdda4; font-size: .68rem; font-style: normal; }
+.achievement-grid { grid-template-columns: 1fr 1fr; }
+.achievement-grid article { display: flex; gap: 12px; align-items: center; }
+.achievement-grid article > strong { font-size: 1.8rem; filter: grayscale(1); opacity: .35; }
+.achievement-grid .unlocked { border-color: #efc7654d; background: #efc7650d; }
+.achievement-grid .unlocked > strong { filter: none; opacity: 1; }
+.achievement-grid p { margin: 3px 0; }
+.achievement-grid small { color: #65d99e; }
+.legacy-timeline { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.legacy-timeline article { border-top: 3px solid #d5a547; }
+.legacy-timeline b { display: block; margin: 7px 0; }
+.gold-status { margin-bottom: 18px; padding: 15px 18px; display: flex; gap: 13px; align-items: center; border: 1px solid #65d99e44; border-radius: 14px; background: #09261cdd; }
+.gold-status svg { color: #67dda4; }
+.gold-status div { display: grid; gap: 3px; }
+.gold-status span { color: #91b6a5; font-size: .7rem; }
+.gold-field { display: grid; gap: 6px; margin-bottom: 12px; color: #c4cfdf; font-size: .73rem; }
+.gold-field input,.club-studio input,.club-studio select { width: 100%; min-height: 42px; padding: 9px; border: 1px solid #ffffff20; border-radius: 9px; background: #08182c; color: #edf3fb; }
+.club-studio input[type=color] { padding: 4px; }
+.checkpoint-list article { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.checkpoint-list article div { display: grid; gap: 4px; }
+.checkpoint-list small { color: #8fa0b6; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.file-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid #ffffff24; border-radius: 10px; color: #e8edf6; background: #ffffff08; font-weight: 800; cursor: pointer; }
+.file-button input { display: none; }
+.fatal-recovery { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top,#123669,#020711 55%); color: #edf3fb; }
+.fatal-recovery > div { max-width: 680px; padding: 38px; border: 1px solid #efc76555; border-radius: 22px; background: #061326ee; }
+.fatal-recovery span { color: #efc765; font-weight: 900; letter-spacing: .16em; }
+.fatal-recovery h1 { font: 800 3rem/1 Barlow Condensed; }
+.fatal-recovery button { margin: 8px; padding: 12px 16px; border: 0; border-radius: 9px; font-weight: 800; }
+.large-text { font-size: 118%; }
+.colorblind-mode { --gold: #ffd166; }
+.colorblind-mode .objective-meter i { background: linear-gradient(90deg,#00b4d8,#ffd166); }
+
+@media (max-width: 980px) {
+  .career-mode-grid,.record-wall { grid-template-columns: 1fr 1fr; }
+  .club-studio { grid-template-columns: 1fr; }
+  .club-preview { min-height: 440px; }
+}
+@media (max-width: 760px) {
+  .tutorial-overlay { grid-template-columns: 1fr; align-items: end; padding: 70px 12px 12px; }
+  .tutorial-guide { position: absolute; right: -30px; top: 48px; width: 55vw; height: 42vh; opacity: .62; }
+  .tutorial-card { align-self: end; padding: 22px 18px; border-radius: 20px; }
+  .tutorial-card h2 { max-width: 78%; }
+  .tutorial-card p { font-size: .82rem; }
+  .tutorial-skip { top: 12px; right: 12px; }
+  .career-mode-grid,.record-wall,.achievement-grid { grid-template-columns: 1fr; }
+  .career-mode { min-height: 96px; }
+  .club-preview { min-height: 390px; }
+  .checkpoint-list article { align-items: stretch; flex-direction: column; }
+}

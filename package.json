@@ -1,6 +1,6 @@
 {
   "name": "vale-basket-manager",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test:foundation": "node scripts/verify-foundation.mjs",
     "test:simulation": "vite build --ssr scripts/simulation-audit.ts --outDir .simulation-audit --emptyOutDir && node .simulation-audit/simulation-audit.js",
+    "test:gold": "vite build --ssr scripts/gold-master-audit.ts --outDir .gold-audit --emptyOutDir && node .gold-audit/gold-master-audit.js",
     "lint": "oxlint",
     "format": "oxfmt"
   },

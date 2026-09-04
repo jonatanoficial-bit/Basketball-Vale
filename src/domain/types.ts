@@ -71,6 +71,59 @@ export type ManagerProfile = {
   avatar: string;
   reputation: number;
 };
+export type CareerModeId = 'dynasty' | 'rebuild' | 'challenge' | 'legend';
+export type CustomClub = {
+  enabled: boolean;
+  name: string;
+  city: string;
+  abbr: string;
+  arenaName: string;
+  mascot: string;
+  primary: string;
+  secondary: string;
+  crestStyle: 'Coroa' | 'Escudo' | 'Monograma';
+};
+export type AchievementUnlock = { id: string; unlockedAt: string };
+export type CareerRecords = {
+  gamesManaged: number;
+  regularSeasonWins: number;
+  playoffSeriesWins: number;
+  championships: number;
+  bestSeasonWins: number;
+  bestWinStreak: number;
+  signings: number;
+  trades: number;
+  draftPicks: number;
+};
+export type MetaChallenge = {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  reward: number;
+  completed: boolean;
+  claimed: boolean;
+};
+export type HistoricalEvent = {
+  id: string;
+  season: number;
+  date: string;
+  title: string;
+  description: string;
+  category: 'recorde' | 'rivalidade' | 'título' | 'franquia';
+};
+export type GoldMasterState = {
+  localAccount: {
+    id: string;
+    displayName: string;
+    email: string;
+    createdAt: string;
+  } | null;
+  telemetryConsent: boolean;
+  tutorialComplete: boolean;
+  lastCloudSyncAt?: string;
+};
 export type Health = { fatigue: number; condition: number; injury?: string };
 
 export type Fixture = {
@@ -344,6 +397,8 @@ export type FranchiseWorld = {
     reducedMotion: boolean;
     highContrast: boolean;
     screenReaderHints: boolean;
+    largeText: boolean;
+    colorBlindMode: boolean;
   };
 };
 
@@ -387,6 +442,13 @@ export type CareerV2 = {
   draftHistory: DraftHistoryEntry[];
   engagement: EngagementState;
   world: FranchiseWorld;
+  careerMode: CareerModeId;
+  customClub: CustomClub;
+  achievements: AchievementUnlock[];
+  careerRecords: CareerRecords;
+  metaChallenges: MetaChallenge[];
+  historicalEvents: HistoricalEvent[];
+  goldMaster: GoldMasterState;
 };
 
 export const blankStats = (): StatLine => ({

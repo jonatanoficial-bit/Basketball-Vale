@@ -1,4 +1,4 @@
-const CACHE = 'vbm-manager-depth-v5'
+const CACHE = 'vbm-gold-master-v6'
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['./', './index.html', './manifest.webmanifest'])))
   self.skipWaiting()

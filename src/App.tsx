@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Cpu,
+  Cloud,
   Dumbbell,
   Gamepad2,
   GraduationCap,
@@ -81,6 +82,27 @@ import {
   simulateNextPostseasonRound,
   simulateRounds,
 } from './domain/seasonEngine';
+import {
+  achievementCatalog,
+  careerModes,
+  claimMetaChallenge,
+  evaluateMetaProgress,
+} from './domain/content';
+import {
+  clearRecoveryCheckpoints,
+  clearTelemetryEvents,
+  createRecoveryCheckpoint,
+  downloadJson,
+  getCloudConfig,
+  importCareerFile,
+  listRecoveryCheckpoints,
+  listTelemetryEvents,
+  pullCloudSave,
+  pushCloudSave,
+  saveCloudConfig,
+  trackLocalEvent,
+  type CloudConfig,
+} from './services/goldMaster';
 
 type Screen =
   | 'landing'
@@ -105,6 +127,9 @@ type Screen =
   | 'licenses'
   | 'world'
   | 'history'
+  | 'club'
+  | 'legacy'
+  | 'gold'
   | 'settings';
 type CreatorDraft = {
   name: string;
@@ -113,6 +138,7 @@ type CreatorDraft = {
   style: string;
   avatar: string;
   teamAbbr: string;
+  careerMode: CareerV2['careerMode'];
 };
 const managerAvatars = [
   'manager-01.png',
@@ -160,6 +186,9 @@ const nav = [
       ['media', 'media', Newspaper],
       ['profile', 'profile', Award],
       ['history', 'history', Trophy],
+      ['club', 'club', Shield],
+      ['legacy', 'legacy', Star],
+      ['gold', 'gold', Cloud],
       ['settings', 'settings', Settings],
       ['licenses', 'licenses', ShieldCheck],
     ],
@@ -215,6 +244,9 @@ const backgroundByScreen: Record<Exclude<Screen, 'landing' | 'creator'>, string>
   licenses: 'franchise-campus.png',
   world: 'franchise-campus.png',
   history: 'home-arena.png',
+  club: 'locker-room.png',
+  legacy: 'home-arena.png',
+  gold: 'executive-suite.png',
   settings: 'executive-suite.png',
 };
 const musicTracks = [
@@ -235,6 +267,8 @@ function TeamMark({ team, small = false }: { team: Team; small?: boolean }) {
       className={small ? 'team-mark small' : 'team-mark'}
       src={img(team.logo)}
       alt={`${team.name} logo`}
+      loading="lazy"
+      decoding="async"
     />
   );
 }
@@ -250,7 +284,21 @@ function PlayerFace({
       className={small ? 'player-face small' : 'player-face'}
       src={img(player.headshot)}
       alt={player.name}
+      loading="lazy"
+      decoding="async"
     />
+  );
+}
+function ClubMark({ career, team, small = false }: { career: CareerV2; team: Team; small?: boolean }) {
+  if (!career.customClub.enabled) return <TeamMark team={team} small={small} />;
+  return (
+    <div
+      className={small ? 'custom-club-mark small' : 'custom-club-mark'}
+      style={{ '--club-a': career.customClub.primary, '--club-b': career.customClub.secondary } as React.CSSProperties}
+      aria-label={`Escudo ${career.customClub.city} ${career.customClub.name}`}
+    >
+      <BrandLogo /><b>{career.customClub.abbr}</b>
+    </div>
   );
 }
 function StatCard({
@@ -311,6 +359,43 @@ function PageTitle({
       <h1>{title}</h1>
       <p>{copy}</p>
     </header>
+  );
+}
+
+const tutorialSteps: { screen: Screen; eyebrow: string; title: string; copy: string }[] = [
+  { screen: 'dashboard', eyebrow: 'BEM-VINDO AO VALE', title: 'Eu sou Mateus, seu diretor de operações.', copy: 'Vou acompanhar seus primeiros passos. A Central mostra a próxima ação, metas urgentes e o pulso da franquia.' },
+  { screen: 'roster', eyebrow: 'CONHEÇA O ELENCO', title: 'Comece pelas suas peças.', copy: 'Abra um atleta para ver atributos, contrato, saúde e produção. A rotação transforma minutos em impacto real.' },
+  { screen: 'tactics', eyebrow: 'IDENTIDADE DE JOGO', title: 'Sua ideia precisa aparecer em quadra.', copy: 'Ritmo, foco ofensivo e cobertura defensiva alteram as posses. Observe o relatório do rival antes de cada partida.' },
+  { screen: 'game', eyebrow: 'GAME DAY', title: 'Aqui as decisões viram resultado.', copy: 'Jogue ou simule o compromisso. No celular a quadra assume formato vertical e o placar mantém as ações legíveis.' },
+  { screen: 'market', eyebrow: 'FRONT OFFICE', title: 'Construa sem quebrar a franquia.', copy: 'Negocie contratos e trocas, acompanhe o cap e use o scouting sabendo que projeções carregam incerteza.' },
+  { screen: 'legacy', eyebrow: 'SEU LEGADO', title: 'Agora escreva a sua história.', copy: 'Desafios, recordes, conquistas e eventos históricos acompanham toda a carreira. A próxima ação sempre leva você adiante.' },
+];
+
+function FirstRunTutorial({ step, onStep, onFinish, open }: { step: number; onStep: (step: number) => void; onFinish: () => void; open: (screen: Screen) => void }) {
+  const item = tutorialSteps[step];
+  const next = () => {
+    if (step === tutorialSteps.length - 1) return onFinish();
+    const nextStep = step + 1;
+    open(tutorialSteps[nextStep].screen);
+    onStep(nextStep);
+  };
+  return (
+    <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-label="Tutorial inicial">
+      <button className="tutorial-skip" onClick={onFinish}>Pular tutorial</button>
+      <div className="tutorial-guide"><img src={img('assets/tutorial/mateus-vale-guide.png')} alt="Mateus, diretor de operações do Vale" /></div>
+      <section className="tutorial-card">
+        <span>{item.eyebrow}</span>
+        <h2>{item.title}</h2>
+        <p>{item.copy}</p>
+        <div className="tutorial-progress" aria-label={`Etapa ${step + 1} de ${tutorialSteps.length}`}>
+          {tutorialSteps.map((_, index) => <i key={index} className={index <= step ? 'active' : ''} />)}
+        </div>
+        <div className="button-row">
+          {step > 0 && <button className="ghost-button" onClick={() => { const previous = step - 1; open(tutorialSteps[previous].screen); onStep(previous); }}>Voltar</button>}
+          <button className="gold-button" onClick={next}>{step === tutorialSteps.length - 1 ? 'Começar minha história' : 'Próximo'}</button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -456,12 +541,23 @@ function SettingsScreen({
   volume,
   onEnabled,
   onVolume,
+  career,
+  commit,
+  onTutorial,
 }: {
   enabled: boolean;
   volume: number;
   onEnabled: (enabled: boolean) => void;
   onVolume: (volume: number) => void;
+  career: CareerV2;
+  commit: (career: CareerV2) => void;
+  onTutorial: () => void;
 }) {
+  const toggleAccessibility = (key: keyof CareerV2['world']['accessibility']) => {
+    const next = structuredClone(career);
+    next.world.accessibility[key] = !next.world.accessibility[key];
+    commit(next);
+  };
   return (
     <>
       <PageTitle kicker="PREFERÊNCIAS" title="Configurações do jogo" copy="Controle a experiência audiovisual sem alterar sua carreira." />
@@ -483,6 +579,25 @@ function SettingsScreen({
             {musicTracks.map(([title], index) => <span key={title}><b>{String(index + 1).padStart(2, '0')}</b>{title}</span>)}
           </div>
         </Panel>
+        <Panel title="Acessibilidade">
+          <div className="settings-actions">
+            {([
+              ['reducedMotion', 'Reduzir animações'],
+              ['highContrast', 'Alto contraste'],
+              ['largeText', 'Texto ampliado'],
+              ['colorBlindMode', 'Paleta distinguível'],
+              ['screenReaderHints', 'Dicas para leitor de tela'],
+            ] as const).map(([key, label]) => (
+              <button key={key} className={career.world.accessibility[key] ? 'setting-toggle active' : 'setting-toggle'} onClick={() => toggleAccessibility(key)}>
+                {career.world.accessibility[key] ? '✓ ' : ''}{label}
+              </button>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Ajuda">
+          <p>Mateus pode reapresentar o fluxo principal sempre que você quiser.</p>
+          <button className="gold-button" onClick={onTutorial}>Reiniciar tutorial guiado</button>
+        </Panel>
       </div>
     </>
   );
@@ -503,6 +618,7 @@ function Creator({
     style: 'Equilibrado',
     avatar: 'manager-03.png',
     teamAbbr: 'BOS',
+    careerMode: 'dynasty',
   });
   const pick = (key: keyof CreatorDraft, value: string) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -588,6 +704,18 @@ function Creator({
               </button>
             ))}
           </div>
+          <h3 className="creator-subtitle">Modo de carreira</h3>
+          <div className="career-mode-grid">
+            {(Object.entries(careerModes) as [CareerV2['careerMode'], (typeof careerModes)[CareerV2['careerMode']]][]).map(([id, mode]) => (
+              <button
+                key={id}
+                className={draft.careerMode === id ? 'career-mode selected' : 'career-mode'}
+                onClick={() => setDraft((current) => ({ ...current, careerMode: id }))}
+              >
+                <span>{mode.eyebrow}</span><b>{mode.name}</b><small>{mode.description}</small>
+              </button>
+            ))}
+          </div>
           <button className="gold-button" onClick={() => setStep(2)}>
             Escolher franquia
           </button>
@@ -627,8 +755,7 @@ function Creator({
             <p className="eyebrow">PROPOSTA DE {chosen.name.toUpperCase()}</p>
             <h1>{draft.name}, o comando é seu.</h1>
             <p>
-              Objetivo: construir uma campanha sólida e proteger o futuro do
-              elenco.
+              Modo {careerModes[draft.careerMode].name}: {careerModes[draft.careerMode].objective}
             </p>
             <ul>
               <li>Calendário completo de 82 jogos por time</li>
@@ -1256,14 +1383,24 @@ function App() {
       : Math.min(1, Math.max(0, parsed));
   });
   const [career, setCareer] = useState<CareerV2 | null>(() => loadCareer());
+  const [tutorialStep, setTutorialStep] = useState<number | null>(() =>
+    localStorage.getItem('vale-tutorial-v1') === 'complete' ? null : 0,
+  );
   const [screen, setScreen] = useState<Screen>(() =>
     loadCareer() ? 'dashboard' : 'landing',
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const [playerId, setPlayerId] = useState<number | null>(null);
   const commit = (next: CareerV2) => {
-    setCareer(next);
-    persistCareer(next);
+    if (career) createRecoveryCheckpoint(career, 'Checkpoint automático');
+    const completed = evaluateMetaProgress(next);
+    trackLocalEvent(completed.goldMaster.telemetryConsent, 'career_commit', {
+      screen,
+      season: completed.seasonNumber,
+      games: Object.keys(completed.results).length,
+    });
+    setCareer(completed);
+    persistCareer(completed);
   };
   useEffect(() => {
     localStorage.setItem('vale-music-enabled', String(musicEnabled));
@@ -1279,7 +1416,7 @@ function App() {
       style: draft.style,
       avatar: draft.avatar,
       reputation: 50,
-    });
+    }, 'pt-BR', draft.careerMode);
     commit(save);
     setScreen('dashboard');
   };
@@ -1296,13 +1433,23 @@ function App() {
     setPlayerId(null);
   };
   const activePlayer = ownRoster.find((player) => player.id === playerId);
+  const finishTutorial = () => {
+    localStorage.setItem('vale-tutorial-v1', 'complete');
+    setTutorialStep(null);
+    if (!career.goldMaster.tutorialComplete) {
+      commit({ ...career, goldMaster: { ...career.goldMaster, tutorialComplete: true } });
+    }
+  };
+  const displayClub = career.customClub.enabled
+    ? `${career.customClub.city} ${career.customClub.name}`
+    : `${ownTeam.city} ${ownTeam.nickname}`;
   return (
     <div
-      className={`app-shell ${career.world.accessibility.highContrast ? 'high-contrast' : ''} ${career.world.accessibility.reducedMotion ? 'reduced-motion' : ''}`}
+      className={`app-shell ${career.world.accessibility.highContrast ? 'high-contrast' : ''} ${career.world.accessibility.reducedMotion ? 'reduced-motion' : ''} ${career.world.accessibility.largeText ? 'large-text' : ''} ${career.world.accessibility.colorBlindMode ? 'colorblind-mode' : ''}`}
       style={
         {
-          '--team-primary': ownTeam.primary,
-          '--team-secondary': ownTeam.secondary,
+          '--team-primary': career.customClub.enabled ? career.customClub.primary : ownTeam.primary,
+          '--team-secondary': career.customClub.enabled ? career.customClub.secondary : ownTeam.secondary,
           '--screen-bg': `url(${img(`assets/backgrounds/${backgroundByScreen[screen as Exclude<Screen, 'landing' | 'creator'>]}`)})`,
         } as React.CSSProperties
       }
@@ -1325,7 +1472,7 @@ function App() {
           />
           <div>
             <b>{career.manager.name}</b>
-            <small>{ownTeam.name}</small>
+            <small>{displayClub}</small>
           </div>
         </div>
         {nav.map(([group, items]) => (
@@ -1364,6 +1511,9 @@ function App() {
                     | 'media'
                     | 'profile'
                     | 'settings'
+                    | 'club'
+                    | 'legacy'
+                    | 'gold'
                     | 'licenses',
                 )}
               </button>
@@ -1396,7 +1546,7 @@ function App() {
               {t(career.language, 'season')} · {career.engineVersion}
             </span>
             <b>
-              {ownTeam.city} {ownTeam.nickname}
+              {displayClub}
             </b>
           </div>
           <div className="top-actions">
@@ -1427,6 +1577,9 @@ function App() {
               volume={musicVolume}
               onEnabled={setMusicEnabled}
               onVolume={setMusicVolume}
+              career={career}
+              commit={commit}
+              onTutorial={() => { setTutorialStep(0); open('dashboard'); }}
             />
           ) : activePlayer ? (
             <PlayerProfile
@@ -1455,6 +1608,9 @@ function App() {
         onVolume={setMusicVolume}
         onOpenSettings={() => open('settings')}
       />
+      {tutorialStep !== null && (
+        <FirstRunTutorial step={tutorialStep} onStep={setTutorialStep} onFinish={finishTutorial} open={open} />
+      )}
     </div>
   );
 }
@@ -1560,6 +1716,9 @@ function ScreenContent({
   if (screen === 'media') return <Media career={career} commit={commit} />;
   if (screen === 'profile') return <Profile career={career} />;
   if (screen === 'history') return <History career={career} />;
+  if (screen === 'club') return <CreateClub career={career} team={ownTeam} commit={commit} />;
+  if (screen === 'legacy') return <LegacyCenter career={career} commit={commit} />;
+  if (screen === 'gold') return <GoldMasterCenter career={career} commit={commit} />;
   return <Licenses />;
 }
 
@@ -1674,6 +1833,8 @@ function Dashboard({
   const opponent = upcoming
     ? teamByAbbr(upcoming.home === team.abbr ? upcoming.away : upcoming.home)
     : null;
+  const clubCity = career.customClub.enabled ? career.customClub.city : team.city;
+  const clubName = career.customClub.enabled ? career.customClub.name : team.nickname;
   return (
     <>
       <section
@@ -1685,7 +1846,7 @@ function Dashboard({
         <div>
           <p className="eyebrow">CENTRAL DA CARREIRA</p>
           <h1>
-            {team.city} <em>{team.nickname}</em>
+            {clubCity} <em>{clubName}</em>
           </h1>
           <p>
             {career.manager.name} · {career.manager.style} · Objetivo:{' '}
@@ -1698,7 +1859,7 @@ function Dashboard({
             </button>
           )}
         </div>
-        <TeamMark team={team} />
+        <ClubMark career={career} team={team} />
       </section>
       <NextActionHub career={career} upcoming={upcoming} open={open} commit={commit} />
       <nav className="cinematic-actions" aria-label="Atalhos principais">
@@ -1758,8 +1919,8 @@ function Dashboard({
           {upcoming && opponent ? (
             <div className="matchup">
               <div>
-                <TeamMark team={team} />
-                <b>{team.abbr}</b>
+                <ClubMark career={career} team={team} />
+                <b>{career.customClub.enabled ? career.customClub.abbr : team.abbr}</b>
               </div>
               <section>
                 <span>{dateLabel(upcoming.date)}</span>
@@ -2671,6 +2832,7 @@ function Market({
       title: 'Troca concluída pela Trade Machine',
       body: 'Contratos, elencos e rotação foram atualizados pelo ruleset SIMULATION.',
     });
+    next.careerRecords.trades += 1;
     commit(next);
   };
   const sign = (player: Player) => {
@@ -2708,6 +2870,7 @@ function Market({
       title: `${player.name} assina contrato de simulação`,
       body: `${money(offered)} por ${offerYears} ano(s). Contrato de gameplay SIMULATION; não representa contrato oficial real.`,
     });
+    next.careerRecords.signings += 1;
     setNegotiationMessage(`${player.lastName} aceitou: ${money(offered)} por ${offerYears} ano(s).`);
     commit(next);
   };
@@ -3394,27 +3557,180 @@ function Profile({ career }: { career: CareerV2 }) {
     </>
   );
 }
+function CreateClub({ career, team, commit }: { career: CareerV2; team: Team; commit: (next: CareerV2) => void }) {
+  const [draft, setDraft] = useState(career.customClub);
+  const set = <K extends keyof CareerV2['customClub']>(key: K, value: CareerV2['customClub'][K]) =>
+    setDraft((current) => ({ ...current, [key]: value }));
+  const save = () => {
+    const name = draft.name.trim().slice(0, 24);
+    const city = draft.city.trim().slice(0, 24);
+    const abbr = draft.abbr.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 3);
+    if (!name || !city || abbr.length < 2) return;
+    const next = structuredClone(career);
+    next.customClub = { ...draft, name, city, abbr, enabled: true };
+    next.world.arena.name = draft.arenaName.trim() || next.world.arena.name;
+    next.news.unshift({ id: `club-${Date.now()}`, date: next.currentDate, category: 'team', title: `${city} ${name}: uma nova identidade`, body: `A franquia adotou o escudo ${draft.crestStyle}, o mascote ${draft.mascot} e manteve sua vaga esportiva ${team.abbr}.` });
+    commit(next);
+  };
+  return (
+    <>
+      <PageTitle kicker="VALE CLUB STUDIO" title="Crie a identidade da sua franquia" copy="Uma personalização real sobre a vaga esportiva escolhida: nome, cidade, arena, cores e escudo acompanham o save sem quebrar calendário, contratos ou playoffs." />
+      <div className="club-studio">
+        <section className="club-preview" style={{ '--club-a': draft.primary, '--club-b': draft.secondary } as React.CSSProperties}>
+          <div className="custom-club-mark"><BrandLogo /><b>{draft.abbr || 'VBC'}</b></div>
+          <span>{draft.city || 'Sua cidade'}</span>
+          <h1>{draft.name || 'Seu clube'}</h1>
+          <p>{draft.mascot} · {draft.arenaName}</p>
+          <small>Vaga esportiva preservada: {team.abbr}</small>
+        </section>
+        <Panel title="Personalização">
+          <div className="creator-grid">
+            <label>Cidade<input value={draft.city} maxLength={24} onChange={(e) => set('city', e.target.value)} /></label>
+            <label>Nome do clube<input value={draft.name} maxLength={24} onChange={(e) => set('name', e.target.value)} /></label>
+            <label>Sigla<input value={draft.abbr} maxLength={3} onChange={(e) => set('abbr', e.target.value.toUpperCase())} /></label>
+            <label>Mascote<input value={draft.mascot} maxLength={24} onChange={(e) => set('mascot', e.target.value)} /></label>
+            <label>Arena<input value={draft.arenaName} maxLength={32} onChange={(e) => set('arenaName', e.target.value)} /></label>
+            <label>Estilo<select value={draft.crestStyle} onChange={(e) => set('crestStyle', e.target.value as CareerV2['customClub']['crestStyle'])}><option>Coroa</option><option>Escudo</option><option>Monograma</option></select></label>
+            <label>Cor principal<input type="color" value={draft.primary} onChange={(e) => set('primary', e.target.value)} /></label>
+            <label>Cor secundária<input type="color" value={draft.secondary} onChange={(e) => set('secondary', e.target.value)} /></label>
+          </div>
+          <div className="button-row">
+            <button className="gold-button" onClick={save}>Aplicar identidade</button>
+            {career.customClub.enabled && <button className="ghost-button" onClick={() => commit({ ...career, customClub: { ...career.customClub, enabled: false } })}>Usar identidade original</button>}
+          </div>
+        </Panel>
+      </div>
+    </>
+  );
+}
+
+function LegacyCenter({ career, commit }: { career: CareerV2; commit: (next: CareerV2) => void }) {
+  const unlocked = new Map(career.achievements.map((item) => [item.id, item]));
+  const records = career.careerRecords;
+  return (
+    <>
+      <PageTitle kicker="VALE LEGACY" title="Desafios, recordes e conquistas" copy={`Modo ${careerModes[career.careerMode].name}: ${careerModes[career.careerMode].objective}`} />
+      <div className="record-wall">
+        <StatCard label="Jogos comandados" value={records.gamesManaged} detail="Carreira" icon={Gamepad2} />
+        <StatCard label="Vitórias" value={records.regularSeasonWins} detail={`Melhor temporada ${records.bestSeasonWins}`} icon={Zap} />
+        <StatCard label="Séries vencidas" value={records.playoffSeriesWins} detail="Playoffs" icon={Star} />
+        <StatCard label="Títulos" value={records.championships} detail="Legado" icon={Trophy} />
+      </div>
+      <div className="office-grid">
+        <Panel title="Desafios ativos">
+          <div className="challenge-list">
+            {career.metaChallenges.map((challenge) => (
+              <article key={challenge.id} className={challenge.completed ? 'complete' : ''}>
+                <span>{Math.min(challenge.progress, challenge.target)}/{challenge.target}</span><b>{challenge.title}</b><p>{challenge.description}</p>
+                <div className="objective-meter"><i style={{ width: `${Math.min(100, challenge.progress / challenge.target * 100)}%` }} /></div>
+                <small>Recompensa {money(challenge.reward)}</small>
+                {challenge.completed && !challenge.claimed && <button className="reward-button" onClick={() => commit(claimMetaChallenge(career, challenge.id))}>Resgatar recompensa</button>}
+                {challenge.claimed && <em>✓ Recompensa resgatada</em>}
+              </article>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Conquistas">
+          <div className="achievement-grid">
+            {achievementCatalog.map((achievement) => {
+              const item = unlocked.get(achievement.id);
+              return <article key={achievement.id} className={item ? 'unlocked' : 'locked'}><strong>{achievement.icon}</strong><div><b>{achievement.name}</b><p>{achievement.description}</p>{item && <small>Desbloqueada em {dateLabel(item.unlockedAt.slice(0, 10))}</small>}</div></article>;
+            })}
+          </div>
+        </Panel>
+      </div>
+      <Panel title="Linha do tempo da franquia">
+        <div className="legacy-timeline">
+          {career.historicalEvents.length ? career.historicalEvents.map((event) => <article key={event.id}><span>S{event.season} · {event.category.toUpperCase()}</span><b>{event.title}</b><p>{event.description}</p><small>{dateLabel(event.date)}</small></article>) : <p>O primeiro marco será registrado assim que sua equipe entrar em quadra.</p>}
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+function GoldMasterCenter({ career, commit }: { career: CareerV2; commit: (next: CareerV2) => void }) {
+  const [config, setConfig] = useState<CloudConfig>(() => getCloudConfig());
+  const [status, setStatus] = useState('Pronto. O save local continua sendo a fonte principal.');
+  const [accountName, setAccountName] = useState(career.goldMaster.localAccount?.displayName ?? career.manager.name);
+  const [accountEmail, setAccountEmail] = useState(career.goldMaster.localAccount?.email ?? '');
+  const checkpoints = listRecoveryCheckpoints();
+  const telemetry = listTelemetryEvents();
+  const createAccount = () => {
+    const next = structuredClone(career);
+    next.goldMaster.localAccount = { id: crypto.randomUUID?.() ?? `vale-${Date.now()}`, displayName: accountName.trim() || career.manager.name, email: accountEmail.trim(), createdAt: new Date().toISOString() };
+    commit(next);
+    setStatus('Perfil local criado. Configure um endpoint para sincronização entre dispositivos.');
+  };
+  const push = async () => {
+    try { saveCloudConfig(config); setStatus('Enviando save criptografado pelo transporte HTTPS…'); await pushCloudSave(config, career); const next = { ...career, goldMaster: { ...career.goldMaster, lastCloudSyncAt: new Date().toISOString() } }; commit(next); setStatus('Save enviado com sucesso.'); }
+    catch (error) { setStatus(`Falha: ${error instanceof Error ? error.message : 'erro desconhecido'}`); }
+  };
+  const pull = async () => {
+    try { saveCloudConfig(config); setStatus('Baixando e validando save…'); const remote = await pullCloudSave(config); createRecoveryCheckpoint(career, 'Antes de baixar da nuvem'); commit(remote); setStatus('Save da nuvem restaurado e validado.'); }
+    catch (error) { setStatus(`Falha: ${error instanceof Error ? error.message : 'erro desconhecido'}`); }
+  };
+  return (
+    <>
+      <PageTitle kicker="GOLD MASTER" title="Conta, nuvem e proteção do save" copy="O jogo funciona integralmente no GitHub Pages. A nuvem é uma integração real e opcional: só é ativada quando você fornece um endpoint HTTPS compatível." />
+      <div className="gold-status"><ShieldCheck /><div><b>{status}</b><span>Não há telemetria de rede nem conta remota simulada.</span></div></div>
+      <div className="office-grid">
+        <Panel title="Perfil local">
+          <div className="creator-grid">
+            <label>Nome de exibição<input value={accountName} onChange={(e) => setAccountName(e.target.value)} /></label>
+            <label>E-mail opcional<input type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} /></label>
+          </div>
+          <button className="gold-button" onClick={createAccount}>{career.goldMaster.localAccount ? 'Atualizar perfil' : 'Criar perfil local'}</button>
+          {career.goldMaster.localAccount && <p>ID: <code>{career.goldMaster.localAccount.id}</code></p>}
+        </Panel>
+        <Panel title="Cloud Save configurável">
+          <label className="gold-field">Endpoint HTTPS<input placeholder="https://seu-backend.example/save" value={config.endpoint} onChange={(e) => setConfig({ ...config, endpoint: e.target.value })} /></label>
+          <label className="gold-field">Token de acesso<input type="password" autoComplete="off" value={config.accessToken} onChange={(e) => setConfig({ ...config, accessToken: e.target.value })} /></label>
+          <div className="button-row"><button className="gold-button" onClick={push}><Cloud /> Enviar save</button><button className="ghost-button" onClick={pull}>Baixar save</button></div>
+          <small>Contrato REST: PUT envia <code>{'{ game, schemaVersion, career }'}</code>; GET retorna esse objeto. O token fica somente neste navegador.</small>
+        </Panel>
+        <Panel title="Backup portátil">
+          <p>Exportação e importação funcionam sem servidor e são a opção mais segura para o GitHub Pages.</p>
+          <div className="button-row"><button className="gold-button" onClick={() => downloadJson(`vale-save-s${career.seasonNumber}.json`, career)}>Exportar save</button><label className="file-button">Importar save<input type="file" accept="application/json" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { const imported = await importCareerFile(file); createRecoveryCheckpoint(career, 'Antes da importação'); commit(imported); setStatus('Save importado e validado.'); } catch (error) { setStatus(`Falha: ${error instanceof Error ? error.message : 'arquivo inválido'}`); } }} /></label></div>
+        </Panel>
+        <Panel title={`Recuperação · ${checkpoints.length}/5`}>
+          <div className="checkpoint-list">{checkpoints.length ? checkpoints.map((checkpoint) => <article key={checkpoint.id}><div><b>{checkpoint.reason}</b><small>{new Date(checkpoint.createdAt).toLocaleString('pt-BR')} · S{checkpoint.career.seasonNumber}</small></div><button className="ghost-button" onClick={() => { createRecoveryCheckpoint(career, 'Antes da restauração'); commit(checkpoint.career); setStatus('Checkpoint restaurado.'); }}>Restaurar</button></article>) : <p>O primeiro checkpoint será criado na próxima alteração do save.</p>}</div>
+          {checkpoints.length > 0 && <button className="text-button" onClick={() => { clearRecoveryCheckpoints(); setStatus('Checkpoints locais removidos.'); }}>Limpar checkpoints</button>}
+        </Panel>
+        <Panel title="Telemetria com consentimento">
+          <p>Quando ativada, registra apenas eventos técnicos localmente. Nada é enviado automaticamente.</p>
+          <button className={career.goldMaster.telemetryConsent ? 'setting-toggle active' : 'setting-toggle'} onClick={() => commit({ ...career, goldMaster: { ...career.goldMaster, telemetryConsent: !career.goldMaster.telemetryConsent } })}>{career.goldMaster.telemetryConsent ? '✓ Coleta local ativada' : 'Coleta local desativada'}</button>
+          <p>{telemetry.length} eventos na fila local.</p>
+          <div className="button-row"><button className="ghost-button" onClick={() => downloadJson('vale-telemetry.json', telemetry)}>Exportar diagnóstico</button><button className="text-button" onClick={() => { clearTelemetryEvents(); setStatus('Diagnósticos apagados.'); }}>Apagar</button></div>
+        </Panel>
+        <Panel title="Privacidade e transparência">
+          <p>Save, perfil e preferências ficam no navegador. O jogo não envia dados sem uma ação explícita sua.</p>
+          <a className="gold-button" href={img('privacy.html')} target="_blank" rel="noreferrer">Abrir política de privacidade</a>
+        </Panel>
+      </div>
+    </>
+  );
+}
 function Licenses() {
   return (
     <>
       <PageTitle
         kicker="CARREIRA"
-        title="Licenças e fontes"
-        copy="Transparência sobre o material incluído e suas limitações de dados."
+        title="Ativos, licenças e fontes"
+        copy="Inventário técnico transparente. A documentação jurídica de uso comercial ainda deverá ser anexada pelo titular."
       />
       <Panel title="Pacote NBA 2026–27">
         <div className="license-grid">
           <article>
             <ShieldCheck className="gold" />
-            <b>30 franquias · 581 atletas</b>
+            <b>30 franquias · 581 atletas no build</b>
             <p>
-              Logos, nomes, rosters e headshots já presentes no pacote local de
-              licença, capturado em 31/08/2026.
+              Logos, nomes, rosters e headshots estão presentes no pacote local,
+              capturado em 31/08/2026. A presença técnica não declara liberação comercial.
             </p>
           </article>
           <article>
             <ClipboardList className="gold" />
-            <b>Fonte de dados</b>
+            <b>Fonte e rastreabilidade</b>
             <p>
               Arquivo <code>src/data/nba-license-pack.json</code>; o app não
               busca dados em tempo de execução.
@@ -3422,10 +3738,10 @@ function Licenses() {
           </article>
           <article>
             <CircleDollarSign className="gold" />
-            <b>Limites explícitos</b>
+            <b>Documentação pendente</b>
             <p>
-              Contratos, payroll e detalhes financeiros não fornecidos pelo
-              pacote aparecem como “DADO NÃO CARREGADO”.
+              Licenças de marcas, direitos de imagem, música e vídeo devem ser
+              validadas antes da comercialização. Consulte o registro em <code>docs/</code>.
             </p>
           </article>
         </div>

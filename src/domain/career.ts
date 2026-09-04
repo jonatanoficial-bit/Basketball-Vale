@@ -15,6 +15,12 @@ import {
   generateDraftClass,
 } from './simulationData';
 import { createEngagement } from './engagement';
+import {
+  careerModes,
+  completeGoldMasterState,
+  createCustomClub,
+  createMetaChallenges,
+} from './content';
 
 const pack = rawPack as unknown as { teams: Team[]; players: Player[] };
 export const teams = pack.teams;
@@ -82,6 +88,8 @@ const makeWorld = (): CareerV2['world'] => ({
     reducedMotion: false,
     highContrast: false,
     screenReaderHints: true,
+    largeText: false,
+    colorBlindMode: false,
   },
 });
 
@@ -89,6 +97,7 @@ export function makeCareer(
   team: Team,
   manager: CareerV2['manager'],
   language: Language = 'pt-BR',
+  careerMode: CareerV2['careerMode'] = 'dynasty',
 ): CareerV2 {
   return {
     version: 3,
@@ -157,7 +166,7 @@ export function makeCareer(
       },
     ],
     prospects: makeProspects(),
-    boardObjective: 'Manter competitividade e desenvolver o elenco.',
+    boardObjective: careerModes[careerMode].objective,
     scoutingAssignments: ['NCAA – alas two-way'],
     playerModels: createPlayerModels(players),
     economy: createEconomy(players, teams),
@@ -173,6 +182,27 @@ export function makeCareer(
     draftHistory: [],
     engagement: createEngagement(team.abbr, teams),
     world: makeWorld(),
+    careerMode,
+    customClub: createCustomClub(team),
+    achievements: [],
+    careerRecords: {
+      gamesManaged: 0,
+      regularSeasonWins: 0,
+      playoffSeriesWins: 0,
+      championships: 0,
+      bestSeasonWins: 0,
+      bestWinStreak: 0,
+      signings: 0,
+      trades: 0,
+      draftPicks: 0,
+    },
+    metaChallenges: createMetaChallenges(),
+    historicalEvents: [],
+    goldMaster: {
+      localAccount: null,
+      telemetryConsent: false,
+      tutorialComplete: false,
+    },
   };
 }
 
@@ -265,7 +295,7 @@ function migrateFoundation(value: Record<string, unknown>): CareerV2 | null {
   return migrated;
 }
 function completeV3(value: CareerV2): CareerV2 {
-  return {
+  const completed = {
     ...value,
     generatedPlayers: value.generatedPlayers ?? [],
     retiredPlayerIds: value.retiredPlayerIds ?? [],
@@ -279,8 +309,15 @@ function completeV3(value: CareerV2): CareerV2 {
         value.record?.wins ?? 0,
         (value.record?.wins ?? 0) + (value.record?.losses ?? 0),
       ),
-    world: value.world ?? makeWorld(),
+    world: {
+      ...(value.world ?? makeWorld()),
+      accessibility: {
+        ...makeWorld().accessibility,
+        ...(value.world?.accessibility ?? {}),
+      },
+    },
   };
+  return completeGoldMasterState(completed, teams.find((team) => team.abbr === value.teamAbbr)!);
 }
 export function loadCareer(): CareerV2 | null {
   try {
