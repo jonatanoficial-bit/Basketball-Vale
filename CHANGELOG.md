@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.0.0 — Engagement & Manager Depth
+
+- Corrigida a incompatibilidade `Eastern/Western` que produzia seeds `TBD` nos playoffs.
+- Playoffs divididos em rodadas explícitas e fluxo campeão → offseason → nova temporada.
+- Adicionados Próxima Ação, caixa de entrada, entrevistas, consequências, rivalidade e objetivo semanal.
+- Adicionados relatório da IA adversária, efeitos táticos visíveis, negociação contratual e scouting incerto.
+- Quadra vertical em celular retrato, emblema Vale oficial e sexto avatar inclusivo.
+
+## 4.0.0 — Cinematic Game Day
+
+- Reforma visual, vídeo de abertura, trilha aleatória, Game Day, placar broadcast e quadra 2.5D.
+
 ## 3.0.0 — World & Release
 
 - Adicionados Franchise World, arena, ledger, ticketing, marketing e owner satisfaction.

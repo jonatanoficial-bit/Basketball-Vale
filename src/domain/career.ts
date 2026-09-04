@@ -14,6 +14,7 @@ import {
   ENGINE_VERSION,
   generateDraftClass,
 } from './simulationData';
+import { createEngagement } from './engagement';
 
 const pack = rawPack as unknown as { teams: Team[]; players: Player[] };
 export const teams = pack.teams;
@@ -170,6 +171,7 @@ export function makeCareer(
     generatedPlayers: [],
     retiredPlayerIds: [],
     draftHistory: [],
+    engagement: createEngagement(team.abbr, teams),
     world: makeWorld(),
   };
 }
@@ -258,6 +260,7 @@ function migrateFoundation(value: Record<string, unknown>): CareerV2 | null {
     generatedPlayers: [],
     retiredPlayerIds: [],
     draftHistory: [],
+    engagement: createEngagement(team.abbr, teams),
   } as CareerV2;
   return migrated;
 }
@@ -267,6 +270,15 @@ function completeV3(value: CareerV2): CareerV2 {
     generatedPlayers: value.generatedPlayers ?? [],
     retiredPlayerIds: value.retiredPlayerIds ?? [],
     draftHistory: value.draftHistory ?? [],
+    engagement:
+      value.engagement ??
+      createEngagement(
+        value.teamAbbr,
+        teams,
+        value.seasonNumber ?? 1,
+        value.record?.wins ?? 0,
+        (value.record?.wins ?? 0) + (value.record?.losses ?? 0),
+      ),
     world: value.world ?? makeWorld(),
   };
 }

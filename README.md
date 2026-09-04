@@ -1,6 +1,6 @@
-# VALE BASKET MANAGER — v4.0 Cinematic Game Day
+# VALE BASKET MANAGER — v5.0 Engagement & Manager Depth
 
-Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva Foundation, Simulation e World & Release e acrescenta a primeira evolução comercial: reforma visual e apresentação audiovisual.
+Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva toda a V4 Cinematic Game Day e acrescenta fluxo de carreira guiado, decisões e profundidade de manager.
 
 ## Conteúdo desta entrega
 
@@ -13,6 +13,14 @@ Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva Found
 - Game Day com apresentação do confronto, quintetos iniciais e entrada na quadra.
 - Placar em estilo broadcast, quadra 2.5D, atleta da posse em movimento, som sintetizado da arena e celebração final.
 - Layout adaptado para desktop e mobile, com redução de movimento respeitada.
+- Quadra vertical real em celular na orientação retrato, com linhas, garrafões, bola e atletas remapeados.
+- Emblema oficial Vale extraído da capa autorizada e aplicado à abertura, navegação, PWA e favicon.
+- Seis opções de manager, incluindo novo retrato masculino negro.
+- Central “Próxima Ação”, caixa de entrada, decisões urgentes, entrevistas, consequências, rivalidade e objetivo semanal com recompensa.
+- Leitura da IA adversária no pré-jogo, com forças, confiança do analista e contramedida sugerida.
+- Táticas com efeitos identificáveis sobre ritmo, espaçamento, arremessos, rebotes, faltas, transição e desgaste.
+- Negociação de agentes livres por salário, duração e reputação, incluindo recusas e nova oferta.
+- Scouting incerto com faixa estimada de OVR que estreita conforme o trabalho do analista.
 - 30 franquias da NBA com nomes e escudos oficiais.
 - 581 atletas listados pela NBA em 31/08/2026: 580 vinculados às franquias e 1 agente livre.
 - Retrato oficial local para os 581 atletas; o site não depende do computador que gerou o ZIP.
@@ -22,7 +30,8 @@ Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva Found
 - Ao confirmar seu jogo, todos os jogos da mesma data são processados pela mesma engine e atualizam classificação/estatísticas.
 - Save `v3` com migração segura de saves `v1` e Foundation `v2`.
 - Contratos plurianuais SIMULATION, cap/tax/aprons, agência livre e Trade Machine com execução no save.
-- Temporada regular, playoffs completos em melhor de sete, campeão, offseason e arquivo histórico.
+- Temporada regular, playoffs em melhor de sete avançando uma rodada por comando, campeão, offseason, nova temporada e arquivo histórico.
+- Correção de compatibilidade `Eastern/Western` do pacote oficial, garantindo seeds válidos e chave 8→4→2→1.
 - Draft anual com 60 prospectos, 30 escolhas automáticas, contratos de novato, classes futuras e histórico.
 - Desenvolvimento, auge, platô, regressão, envelhecimento, aposentadorias, fadiga, condição, prontidão e moral.
 - Gerenciamento de quinteto e distribuição dos 240 minutos.
@@ -85,6 +94,7 @@ pnpm run build
 - `scripts/`: reconstrução auditável do pacote de dados e assets.
 - `docs/SIMULATION-COMPLETE.md`: cobertura da Parte 2 da Bíblia Mestra.
 - `docs/STRESS-TEST-50-SEASONS.md`: evidência de 61.500 partidas auditadas.
+- `docs/V5-ENGAGEMENT-MANAGER-DEPTH.md`: decisões, profundidade e ciclo de temporada da V5.
 
 ## Direitos e atualização de temporada
 

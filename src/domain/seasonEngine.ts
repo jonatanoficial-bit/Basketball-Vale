@@ -1,6 +1,7 @@
 import { applyResults, baseStandings, createLeagueSchedule, createPlayoffBracket, simulateFixture, standingsSorted } from './league'
 import { blankStats, type CareerV2, type Player, type PlayoffSeries, type Prospect, type Team } from './types'
 import { createPlayerModel, developModels, generateDraftClass, randomFromSeed } from './simulationData'
+import { createEngagement } from './engagement'
 
 const universePlayers = (career: CareerV2, players: Player[]) => [...players, ...career.generatedPlayers].filter((player) => !career.retiredPlayerIds.includes(player.id)).map((player) => ({ ...player, team: career.economy.contracts[player.id]?.team ?? player.team }))
 export function simulateRounds(career: CareerV2, players: Player[], roundCount: number) {
@@ -15,10 +16,59 @@ function playSeries(career: CareerV2, series: PlayoffSeries, players: Player[], 
   while (higherWins < 4 && lowerWins < 4) { const higherHome = gameIndex % 4 < 2; const fixture = { id: `${series.id}-g${gameIndex + 1}`, date: career.currentDate, round: 82 + round, home: higherHome ? series.higherSeed : series.lowerSeed, away: higherHome ? series.lowerSeed : series.higherSeed, status: 'scheduled' as const }; const result = simulateFixture(fixture, activePlayers, career.teamAbbr, career.rotation, career.tactics, false, career.playerModels, career.health); career.results[result.id] = result; const higherScore = result.home === series.higherSeed ? result.homeScore : result.awayScore; const lowerScore = result.home === series.lowerSeed ? result.homeScore : result.awayScore; if (higherScore > lowerScore) higherWins += 1; else lowerWins += 1; gameIndex += 1 }
   return { ...series, higherWins, lowerWins, winner: higherWins === 4 ? series.higherSeed : series.lowerSeed }
 }
+const playoffRoundName = (round: number) =>
+  ['Play-in', 'Primeira rodada', 'Semifinais de conferência', 'Finais de conferência', 'Finais da liga'][round] ?? `Rodada ${round}`
+
+/** Simulates exactly one postseason round so a calendar action can never skip the whole bracket. */
+export function simulateNextPostseasonRound(career: CareerV2, players: Player[], teams: Team[]) {
+  const next = structuredClone(career)
+  const previousRound = next.playoffs.length ? Math.max(...next.playoffs.map((series) => series.round)) : 0
+  if (previousRound >= 4 && next.playoffs.some((series) => series.round === 4 && series.winner)) return next
+  const round = previousRound + 1
+  let pending: PlayoffSeries[] = []
+  if (round === 1) {
+    pending = createPlayoffBracket(next, teams)
+  } else if (round <= 3) {
+    const previous = next.playoffs.filter((series) => series.round === previousRound)
+    for (const conference of ['East', 'West']) {
+      const winners = previous.filter((series) => series.conference === conference).map((series) => series.winner).filter(Boolean) as string[]
+      for (let index = 0; index < winners.length / 2; index += 1) pending.push({ id: `po-${conference}-r${round}-${index + 1}-s${next.seasonNumber}`, conference, round, higherSeed: winners[index * 2], lowerSeed: winners[index * 2 + 1], higherWins: 0, lowerWins: 0 })
+    }
+  } else {
+    const finalists = next.playoffs.filter((series) => series.round === 3).map((series) => series.winner).filter(Boolean) as string[]
+    if (finalists.length === 2) pending = [{ id: `po-finals-s${next.seasonNumber}`, conference: 'Finals', round: 4, higherSeed: finalists[0], lowerSeed: finalists[1], higherWins: 0, lowerWins: 0 }]
+  }
+  if (!pending.length) return next
+  const completed = pending.map((series) => playSeries(next, series, players, round))
+  next.playoffs.push(...completed)
+  const ownSeries = completed.find((series) => series.higherSeed === next.teamAbbr || series.lowerSeed === next.teamAbbr)
+  next.news.unshift({
+    id: `playoffs-s${next.seasonNumber}-r${round}`,
+    date: next.currentDate,
+    category: 'league',
+    title: `${playoffRoundName(round)} concluída`,
+    body: ownSeries
+      ? `${ownSeries.higherSeed} ${ownSeries.higherWins}–${ownSeries.lowerWins} ${ownSeries.lowerSeed}. ${ownSeries.winner === next.teamAbbr ? 'Sua franquia avançou.' : 'Sua campanha chegou ao fim nesta rodada.'}`
+      : `${completed.length} séries foram processadas. Sua franquia não participou desta rodada.`,
+  })
+  next.simulationLog.push(`Temporada ${next.seasonNumber}: ${playoffRoundName(round)} simulada separadamente.`)
+  const finals = completed.find((series) => series.round === 4)
+  if (finals?.winner && !next.seasonArchives.some((archive) => archive.season === `${2025 + next.seasonNumber}-${String(26 + next.seasonNumber).slice(-2)}`)) {
+    next.seasonArchives.push({ season: `${2025 + next.seasonNumber}-${String(26 + next.seasonNumber).slice(-2)}`, champion: finals.winner, standings: standingsSorted(next.standings), awards: { champion: finals.winner }, draftClassId: `draft-${2026 + next.seasonNumber}` })
+    next.news.unshift({ id: `champion-${next.seasonNumber}`, date: next.currentDate, category: 'league', title: `${finals.winner} conquista o título`, body: `As Finais foram concluídas. A offseason e a nova temporada já estão liberadas.` })
+  }
+  return next
+}
+
+/** Compatibility helper for tests and old integrations; the UI uses one round at a time. */
 export function simulatePostseason(career: CareerV2, players: Player[], teams: Team[]) {
-  const next = structuredClone(career); let roundSeries = createPlayoffBracket(next, teams).map((series) => playSeries(next, series, players, 1)); const allSeries: PlayoffSeries[] = [...roundSeries]
-  for (let round = 2; round <= 3; round += 1) { const nextSeries: PlayoffSeries[] = []; for (const conference of ['East','West']) { const winners = roundSeries.filter((series) => series.conference === conference).map((series) => series.winner!).filter(Boolean); for (let index = 0; index < winners.length / 2; index += 1) nextSeries.push({ id: `po-${conference}-r${round}-${index + 1}`, conference, round, higherSeed: winners[index * 2], lowerSeed: winners[index * 2 + 1], higherWins: 0, lowerWins: 0 }) } roundSeries = nextSeries.map((series) => playSeries(next, series, players, round)); allSeries.push(...roundSeries) }
-  const finalists = roundSeries.map((series) => series.winner!).filter(Boolean); const finals = playSeries(next, { id: `po-finals-s${next.seasonNumber}`, conference: 'Finals', round: 4, higherSeed: finalists[0], lowerSeed: finalists[1], higherWins: 0, lowerWins: 0 }, players, 4); allSeries.push(finals); next.playoffs = allSeries; next.seasonArchives.push({ season: `${2025 + next.seasonNumber}-${String(26 + next.seasonNumber).slice(-2)}`, champion: finals.winner, standings: standingsSorted(next.standings), awards: { champion: finals.winner ?? 'TBD' }, draftClassId: `draft-${2026 + next.seasonNumber}` }); next.news.unshift({ id: `champion-${next.seasonNumber}`, date: next.currentDate, category: 'league', title: `${finals.winner} conquista o título`, body: `Playoffs completos simulados pela engine ${next.engineVersion}.` }); return next
+  let next = structuredClone(career)
+  while (!next.playoffs.some((series) => series.round === 4 && series.winner)) {
+    const advanced = simulateNextPostseasonRound(next, players, teams)
+    if (advanced.playoffs.length === next.playoffs.length) break
+    next = advanced
+  }
+  return next
 }
 const makeRookie = (prospect: Prospect, season: number, pick: number, team: string): Player => {
   const id = 9_000_000 + season * 100 + pick
@@ -37,5 +87,5 @@ export function advanceOffseason(career: CareerV2, players: Player[], teams: Tea
   draftClass.slice(0,30).forEach((prospect,index) => { const pick = index + 1; const team = order[index] ?? teams[index].abbr; const rookie = makeRookie(prospect, endingSeason, pick, team); next.generatedPlayers.push(rookie); const model = createPlayerModel(rookie); model.age = prospect.age; model.archetype = prospect.archetype; model.phase = 'development'; model.hiddenPotential = Math.min(96, rookie.overall + 5 + (pick % 9)); next.playerModels[rookie.id] = model; next.economy.contracts[rookie.id] = {playerId:rookie.id,team,salary:Math.max(1_200_000,12_000_000-pick*310_000),years:4,startSeason:`${2025+endingSeason}-${String(26+endingSeason).slice(-2)}`,option:'team',status:'active',source:'SIMULATION'}; next.health[rookie.id] = {fatigue:10,condition:96}; next.draftHistory.push({season:endingSeason,pick,team,playerId:rookie.id,name:rookie.name,position:rookie.position}) })
   const allPlayers = [...players,...next.generatedPlayers].filter((player) => !next.retiredPlayerIds.includes(player.id)); const quality = (player: Player) => { const model = next.playerModels[player.id]; return (model?.offense ?? player.overall) + (model?.defense ?? player.overall) + (model?.hiddenPotential ?? player.overall) * .3 }
   for (const team of teams) { let active = allPlayers.filter((player) => next.economy.contracts[player.id]?.team === team.abbr && next.economy.contracts[player.id]?.status === 'active').sort((a,b) => quality(b)-quality(a)); for (const cut of active.slice(18)) { const contract = next.economy.contracts[cut.id]; contract.status = 'waived'; contract.team = 'FA'; contract.years = 0 } active = active.slice(0,18); const freeAgents = allPlayers.filter((player) => next.economy.contracts[player.id]?.status !== 'active').sort((a,b) => quality(b)-quality(a)); while (active.length < 15 && freeAgents.length) { const signing = freeAgents.shift()!; const contract = next.economy.contracts[signing.id]; contract.team = team.abbr; contract.status = 'active'; contract.years = 1 + ((signing.id + endingSeason) % 3); contract.salary = Math.max(1_200_000,Math.round((signing.overall - 55) ** 2 * 33_000)); contract.startSeason = `${2025+endingSeason}-${String(26+endingSeason).slice(-2)}`; active.push(signing) } }
-  next.seasonNumber += 1; next.fixtures = createLeagueSchedule(teams, next.seasonNumber); next.standings = baseStandings(teams); next.playerStats = Object.fromEntries(Object.keys(next.playerModels).map((id) => [Number(id), blankStats()])); next.results = {}; next.playoffs = []; next.record = {wins:0,losses:0}; next.prospects = generateDraftClass(2026 + next.seasonNumber); next.currentDate = `${2025 + next.seasonNumber}-10-20`; next.rotation = allPlayers.filter((player) => next.economy.contracts[player.id]?.team === next.teamAbbr && next.economy.contracts[player.id]?.status === 'active').sort((a,b) => quality(b)-quality(a)).slice(0,10).map((player,index) => ({playerId:player.id,minutes:[34,33,31,29,27,23,20,16,15,12][index],role:index<5?'Starter':index<9?'Rotation':'Reserve'})); next.news.unshift({id:`draft-${endingSeason}`,date:next.currentDate,category:'league',title:`Draft e offseason ${endingSeason} concluídos`,body:`30 prospectos DEV selecionados; ${next.retiredPlayerIds.length} aposentadorias acumuladas e elencos equilibrados pela IA.`}); next.simulationLog.push(`Offseason ${endingSeason}: draft de 30 escolhas, agência livre, aposentadorias e entrada na temporada ${next.seasonNumber}.`); return next
+  next.seasonNumber += 1; next.fixtures = createLeagueSchedule(teams, next.seasonNumber); next.standings = baseStandings(teams); next.playerStats = Object.fromEntries(Object.keys(next.playerModels).map((id) => [Number(id), blankStats()])); next.results = {}; next.playoffs = []; next.record = {wins:0,losses:0}; next.prospects = generateDraftClass(2026 + next.seasonNumber); next.currentDate = `${2025 + next.seasonNumber}-10-20`; next.engagement = createEngagement(next.teamAbbr, teams, next.seasonNumber); next.rotation = allPlayers.filter((player) => next.economy.contracts[player.id]?.team === next.teamAbbr && next.economy.contracts[player.id]?.status === 'active').sort((a,b) => quality(b)-quality(a)).slice(0,10).map((player,index) => ({playerId:player.id,minutes:[34,33,31,29,27,23,20,16,15,12][index],role:index<5?'Starter':index<9?'Rotation':'Reserve'})); next.news.unshift({id:`draft-${endingSeason}`,date:next.currentDate,category:'league',title:`Draft e offseason ${endingSeason} concluídos`,body:`30 prospectos DEV selecionados; ${next.retiredPlayerIds.length} aposentadorias acumuladas e elencos equilibrados pela IA. A temporada ${next.seasonNumber} começou e o calendário foi reiniciado.`}); next.simulationLog.push(`Offseason ${endingSeason}: draft de 30 escolhas, agência livre, aposentadorias e entrada na temporada ${next.seasonNumber}.`); return next
 }

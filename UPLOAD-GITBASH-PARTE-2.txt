@@ -1,15 +1,13 @@
-UPLOAD RÁPIDO — GIT BASH
+UPLOAD RÁPIDO — V5 PARTE 2
 
-1) Abra o Git Bash e cole:
+Cole no Git Bash:
 
 cd '/c/Users/jonat/Desktop/GAME/¨2026/basquete'
 git pull origin main --rebase
-powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath 'C:\Users\jonat\Documents\Codex\2026-08-31\estou-enviando-biblia\work\vale-basket-manager-parte-1\outputs\VALE-BASKET-MANAGER-PARTE-2-SIMULATION-GITHUB.zip' -DestinationPath 'C:\Users\jonat\Desktop\GAME\¨2026\basquete' -Force"
+powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath 'C:\Users\jonat\Documents\Codex\2026-08-31\estou-enviando-biblia\outputs\VALE-BASKET-MANAGER-V5-PARTE-2-ENGAGEMENT-MANAGER-DEPTH-GITHUB.zip' -DestinationPath 'C:\Users\jonat\Desktop\GAME\¨2026\basquete' -Force"
 git add -A
-git commit -m "Parte 2 Simulation completa"
+git commit -m "Vale Basket Manager v5 Engagement e Manager Depth"
 git push origin main
 
-2) No GitHub: Settings > Pages > Build and deployment > Source > GitHub Actions.
-
-Site esperado:
+Site:
 https://jonatanoficial-bit.github.io/Basketball-Vale/

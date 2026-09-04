@@ -282,6 +282,44 @@ export type DraftHistoryEntry = {
   name: string;
   position: string;
 };
+export type ManagerDecisionChoice = {
+  id: string;
+  label: string;
+  consequence: string;
+  fanMood: number;
+  chemistry: number;
+  budget: number;
+  reputation: number;
+};
+export type ManagerDecision = {
+  id: string;
+  title: string;
+  body: string;
+  deadline: string;
+  category: 'media' | 'team' | 'board';
+  choices: ManagerDecisionChoice[];
+};
+export type WeeklyObjective = {
+  id: string;
+  title: string;
+  description: string;
+  targetWins: number;
+  targetGames: number;
+  baseWins: number;
+  baseGames: number;
+  rewardBudget: number;
+  rewardReputation: number;
+  claimed: boolean;
+};
+export type EngagementState = {
+  pendingDecisions: ManagerDecision[];
+  resolvedDecisionIds: string[];
+  inboxRead: string[];
+  rivalryTeam: string;
+  rivalryHeat: number;
+  storyChapter: number;
+  weeklyObjective: WeeklyObjective;
+};
 export type FranchiseWorld = {
   owner: string;
   ownerSatisfaction: number;
@@ -347,6 +385,7 @@ export type CareerV2 = {
   generatedPlayers: Player[];
   retiredPlayerIds: number[];
   draftHistory: DraftHistoryEntry[];
+  engagement: EngagementState;
   world: FranchiseWorld;
 };
 

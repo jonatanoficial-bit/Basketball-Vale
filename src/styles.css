@@ -54,16 +54,12 @@ img {
   align-items: center;
   gap: 10px;
 }
-.brand > span {
-  display: grid;
-  place-items: center;
-  width: 39px;
-  height: 39px;
-  color: #07101f;
-  background: linear-gradient(145deg, #f5d77d, #ac7926);
-  font: bold 27px Barlow Condensed;
-  border: 2px solid #fff0b2;
-  clip-path: polygon(50% 0, 100% 20%, 86% 100%, 14% 100%, 0 20%);
+.vale-brand-logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 12px #0008) drop-shadow(0 0 12px #d9a84540);
 }
 .brand b {
   font: 800 23px/18px Barlow Condensed;
@@ -843,6 +839,8 @@ img {
   box-shadow: 0 0 15px #fff7b2;
   transform: translate(-50%, -50%);
   transition: all 0.4s ease;
+  left: var(--court-x, 50%);
+  top: var(--court-y, 50%);
 }
 .court-player {
   position: absolute;
@@ -851,6 +849,8 @@ img {
   z-index: 2;
   transform: translate(-50%, -50%);
   transition: all 0.4s ease;
+  left: var(--court-x, 50%);
+  top: var(--court-y, 50%);
 }
 .court-player .player-face {
   width: 36px;
@@ -1940,6 +1940,8 @@ body {
   box-shadow: 0 0 0 10px #eab84a18, 0 0 80px #1b68ff88, inset 0 0 32px #efc76566;
   color: #f9d77d;
   font: 800 clamp(64px, 8vw, 105px)/1 Barlow Condensed;
+  object-fit: contain;
+  padding: 4px;
 }
 .intro-brand > p {
   margin: 24px 0 8px;
@@ -2030,7 +2032,7 @@ body {
   border-right: 1px solid #eac66d33;
   box-shadow: 12px 0 40px #0008;
 }
-.brand > span { width: 48px; height: 48px; font-size: 32px; }
+.brand > .vale-brand-logo { width: 52px; height: 52px; }
 .brand b { font-size: 27px; line-height: 22px; }
 .brand small { font-size: 0.7rem; letter-spacing: 0.16em; margin-top: 5px; }
 .manager-mini {
@@ -2484,4 +2486,103 @@ body {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* V5 · guided career loop, decisions and manager depth */
+.next-action-hub { margin: 18px 0 22px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.85fr); overflow: hidden; border: 1px solid #efc76555; border-radius: 22px; background: linear-gradient(125deg, #071a33f2, #030915f4 58%, #1d1408e8); box-shadow: 0 22px 60px #0008, inset 0 1px #ffffff14; }
+.next-action-main { padding: 28px; border-right: 1px solid #efc76525; }
+.urgent-chip { display: inline-flex; align-items: center; gap: 7px; color: #f2ca68; font-size: 0.66rem; font-weight: 900; letter-spacing: 0.15em; }
+.urgent-chip svg { width: 16px; }
+.next-action-main h2 { margin: 9px 0 7px; font: 800 clamp(1.8rem, 3vw, 3rem)/1 Barlow Condensed; }
+.next-action-main > p { max-width: 720px; margin: 0 0 18px; color: #b7c4d8; }
+.next-action-button { min-height: 50px; }
+.decision-buttons { display: flex; flex-wrap: wrap; gap: 9px; }
+.decision-buttons button { display: grid; gap: 3px; text-align: left; }
+.decision-buttons small { color: inherit; opacity: 0.75; font-size: 0.64rem; }
+.engagement-rail { display: grid; grid-template-columns: 1fr; }
+.engagement-rail > article { padding: 18px 20px; border-bottom: 1px solid #ffffff11; }
+.engagement-rail article > span { color: #d8ae55; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.12em; }
+.engagement-rail article > b { display: block; margin-top: 5px; font: 700 1.05rem Barlow Condensed; }
+.engagement-rail article p { margin: 5px 0; color: #9eacc0; font-size: 0.72rem; }
+.engagement-rail article small { color: #aebbd0; font-size: 0.62rem; }
+.engagement-rail article em { display: block; margin-top: 7px; color: #63d49b; font-size: 0.65rem; font-style: normal; }
+.objective-meter { height: 6px; margin: 10px 0 7px; overflow: hidden; border-radius: 9px; background: #ffffff12; }
+.objective-meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #397cf5, #efc765); }
+.reward-button { margin-top: 9px; border: 1px solid #64da9b55; border-radius: 8px; padding: 7px 10px; color: #78e2a9; background: #0e392650; font-size: 0.66rem; font-weight: 800; }
+.rivalry-card > div { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.inbox-button { min-height: 48px; display: flex; align-items: center; gap: 9px; padding: 0 20px; border: 0; color: #edf2fa; background: #ffffff06; text-align: left; }
+.inbox-button svg { width: 17px; color: #efc765; }
+.inbox-button b { margin-left: auto; min-width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; color: #06101e; background: #efc765; }
+.urgent-inbox { border-color: #efc76555; }
+.decision-list { display: grid; gap: 12px; }
+.decision-list > article { padding: 18px; border: 1px solid #ffffff13; border-radius: 14px; background: #ffffff06; }
+.decision-list article > span { color: #efc765; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.09em; }
+.decision-list h3 { margin: 7px 0; font: 700 1.3rem Barlow Condensed; }
+.decision-list p { color: #aebbd0; }
+.season-flow { margin-bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; border: 1px solid #ffffff14; border-radius: 14px; background: linear-gradient(100deg, #0a1d36dd, #07101fee); }
+.season-flow > div { display: grid; gap: 3px; }
+.season-flow span { color: #d8ae55; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.12em; }
+.season-flow b { font: 700 1.15rem Barlow Condensed; }
+.season-flow p { grid-column: 1 / -1; margin: 3px 0 0; color: #aebbd0; font-size: 0.74rem; }
+.season-flow.playoffs { border-color: #3d83ff66; box-shadow: inset 4px 0 #397cf5; }
+.season-flow.champion { border-color: #efc76577; box-shadow: inset 4px 0 #efc765; }
+.season-transition { min-height: 360px; }
+.season-transition .gold-button { margin: 14px 0 8px; }
+.season-transition small { color: #8fa0b8; }
+.tactical-impact-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.tactical-impact-grid article { padding: 13px; border: 1px solid #ffffff12; border-radius: 11px; background: #ffffff05; }
+.tactical-impact-grid span, .tactical-impact-grid b, .tactical-impact-grid small { display: block; }
+.tactical-impact-grid span { color: #d8ae55; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.08em; }
+.tactical-impact-grid b { margin: 7px 0 4px; font: 700 1rem Barlow Condensed; }
+.tactical-impact-grid small { color: #9eacc0; line-height: 1.35; }
+.opponent-ai-report { position: relative; z-index: 2; width: min(100%, 980px); margin: 0 auto 14px; padding: 12px 15px; border: 1px solid #4c8dff48; border-radius: 14px; background: #031025dd; backdrop-filter: blur(12px); }
+.opponent-ai-report > header { display: flex; align-items: center; gap: 8px; color: #8ab7ff; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.1em; }
+.opponent-ai-report > header svg { width: 15px; }
+.opponent-ai-report > header span { margin-left: auto; color: #d1dbea; }
+.opponent-ai-report > div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin: 10px 0; }
+.opponent-ai-report p { margin: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; font-size: 0.58rem; }
+.opponent-ai-report p i { height: 4px; overflow: hidden; border-radius: 4px; background: #ffffff13; }
+.opponent-ai-report p i b { display: block; height: 100%; background: linear-gradient(90deg, #397cf5, #efc765); }
+.opponent-ai-report > footer { display: flex; justify-content: space-between; gap: 14px; color: #b6c3d6; font-size: 0.66rem; }
+.opponent-ai-report > footer b { color: #efc765; }
+.negotiation-console { margin-bottom: 15px; display: grid; grid-template-columns: 130px minmax(180px, 1fr); gap: 10px 14px; padding: 14px; border: 1px solid #efc7652f; border-radius: 12px; background: #09182b; }
+.negotiation-console label { display: grid; gap: 5px; color: #c1ccdc; font-size: 0.68rem; }
+.negotiation-console select { background: #0c1c32; border: 1px solid #ffffff18; border-radius: 8px; padding: 8px; color: #e8edf7; }
+.negotiation-console input { width: 100%; accent-color: #e6ba59; }
+.negotiation-console p { grid-column: 1 / -1; margin: 0; color: #8fa0b8; font-size: 0.66rem; }
+.negotiation-console > strong { grid-column: 1 / -1; color: #efc765; font-size: 0.72rem; }
+.scouting-range { display: block; margin: 8px 0; color: #efc765; font: 700 0.84rem Barlow Condensed; }
+
+@media (max-width: 980px) {
+  .next-action-hub { grid-template-columns: 1fr; }
+  .next-action-main { border-right: 0; border-bottom: 1px solid #efc76525; }
+  .engagement-rail { grid-template-columns: 1fr 1fr; }
+  .inbox-button { grid-column: 1 / -1; }
+  .tactical-impact-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .next-action-main { padding: 20px 16px; }
+  .engagement-rail { grid-template-columns: 1fr; }
+  .inbox-button { grid-column: auto; }
+  .opponent-ai-report > div { grid-template-columns: 1fr 1fr; }
+  .opponent-ai-report > footer { flex-direction: column; }
+  .negotiation-console { grid-template-columns: 1fr; }
+  .negotiation-console p, .negotiation-console > strong { grid-column: auto; }
+}
+
+/* Portrait mobile uses a true vertical half-to-half court and remaps every event coordinate. */
+@media (max-width: 600px) and (orientation: portrait) {
+  .broadcast-court { width: 100%; height: min(156vw, 690px); min-height: 540px; max-height: 690px; background: linear-gradient(180deg, #905324ee, #e3ac5f 50%, #905324ee), repeating-linear-gradient(0deg, #fff1 0 3px, transparent 3px 45px); }
+  .court-line.center { left: 0; top: 50%; width: 100%; height: 2px; }
+  .court-line.center:after { left: calc(50% - 47px); top: -47px; }
+  .paint { width: 54%; height: 18%; left: 23%; right: auto; }
+  .paint.left { left: 23%; top: 0; border: 2px solid #fff9e7aa; border-top: 0; }
+  .paint.right { left: 23%; right: auto; top: auto; bottom: 0; border: 2px solid #fff9e7aa; border-bottom: 0; }
+  .broadcast-court > .team-mark { width: 118px; height: 118px; }
+  .court-player, .ball { left: var(--court-y, 50%); top: var(--court-x, 50%); }
+  .event-banner { width: 88%; bottom: 11px; font-size: 0.72rem; }
+  .court-player .player-face { width: 38px; height: 38px; }
+  .tactical-impact-grid { grid-template-columns: 1fr; }
+  .season-flow { grid-template-columns: 1fr; }
+  .season-flow p { grid-column: auto; }
 }

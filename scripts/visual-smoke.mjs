@@ -1,0 +1,23 @@
+import { chromium } from 'file:///C:/Users/jonat/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+
+const browser = await chromium.launch({ headless: true, executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+await page.goto('http://127.0.0.1:5173/', { waitUntil: 'networkidle' });
+await page.getByRole('button', { name: /iniciar experiência/i }).click();
+await page.getByRole('button', { name: /pular abertura/i }).click();
+await page.getByRole('button', { name: /criar carreira/i }).click();
+const avatarCount = await page.locator('.avatar-choice').count();
+await page.getByRole('button', { name: /escolher franquia/i }).click();
+await page.getByRole('button', { name: /ver proposta/i }).click();
+await page.getByRole('button', { name: /assinar e iniciar/i }).click();
+await page.getByText('PRÓXIMA AÇÃO').waitFor();
+await page.screenshot({ path: 'artifacts/v5-mobile-dashboard.png', fullPage: true });
+const logoLoaded = await page.locator('.vale-brand-logo').first().evaluate((image) => image.complete && image.naturalWidth > 0);
+await page.locator('.cinematic-actions .featured').click();
+await page.getByRole('button', { name: /pular apresentação/i }).click();
+await page.getByRole('button', { name: 'Quadra', exact: true }).click();
+await page.screenshot({ path: 'artifacts/v5-mobile-court.png', fullPage: true });
+const court = await page.locator('.broadcast-court').evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
+if (!logoLoaded || avatarCount < 6 || court.height <= court.width) throw new Error(JSON.stringify({ logoLoaded, avatarCount, court }));
+console.log(JSON.stringify({ logoLoaded, avatarCount, mobileCourt: court, portrait: court.height > court.width }, null, 2));
+await browser.close();

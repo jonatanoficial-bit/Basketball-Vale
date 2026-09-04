@@ -71,8 +71,14 @@ import {
 } from './domain/types';
 import { evaluateTrade, payrollFor } from './domain/simulationData';
 import {
+  claimWeeklyObjective,
+  objectiveProgress,
+  resolveManagerDecision,
+  seasonStatus,
+} from './domain/engagement';
+import {
   advanceOffseason,
-  simulatePostseason,
+  simulateNextPostseasonRound,
   simulateRounds,
 } from './domain/seasonEngine';
 
@@ -114,6 +120,7 @@ const managerAvatars = [
   'manager-03.png',
   'manager-04.png',
   'manager-05.png',
+  'manager-06.png',
 ];
 const nav = [
   [
@@ -178,6 +185,15 @@ const playersForCareer = (career: CareerV2) =>
     team: career.economy.contracts[player.id]?.team ?? player.team,
   }));
 const img = (path: string) => asset(path.replace(/^\//, ''));
+function BrandLogo({ className = '' }: { className?: string }) {
+  return (
+    <img
+      className={`vale-brand-logo ${className}`}
+      src={img('assets/brand/vale-official-logo.png')}
+      alt="Vale Basketball Manager"
+    />
+  );
+}
 const backgroundByScreen: Record<Exclude<Screen, 'landing' | 'creator'>, string> = {
   dashboard: 'home-arena.png',
   roster: 'locker-room.png',
@@ -336,7 +352,7 @@ function IntroGate({ onComplete }: { onComplete: () => void }) {
       />
       <div className="intro-shade" />
       <section className="intro-brand" aria-hidden={playing}>
-        <div className="intro-emblem">V</div>
+        <BrandLogo className="intro-emblem" />
         <p>VALE BASKETBALL MANAGER</p>
         <h1>Construa uma dinastia.</h1>
         <button className="intro-start" onClick={start}>
@@ -701,20 +717,52 @@ function GameCenter({
     );
     return () => window.clearTimeout(timer);
   }, [running, preview, index, speed]);
+  const lifecycle = seasonStatus(career);
   if (!fixture)
     return (
       <Panel title="Game Center">
-        <div className="empty-state">
+        <div className="empty-state season-transition">
           <Trophy size={34} />
-          <h3>Temporada regular concluída</h3>
+          <h3>{lifecycle.champion ? `Campeão: ${lifecycle.champion}` : 'Temporada regular concluída'}</h3>
           <p>
-            O quadro de playoffs é preparado a partir da classificação final.
+            {lifecycle.champion
+              ? 'As Finais terminaram. Processe a offseason para abrir o draft, atualizar contratos e iniciar a próxima temporada.'
+              : `Próxima etapa: ${lifecycle.currentPlayoffRound ? `rodada ${lifecycle.currentPlayoffRound + 1} dos playoffs` : 'primeira rodada dos playoffs'}.`}
           </p>
+          {lifecycle.champion ? (
+            <button className="gold-button" onClick={() => commit(advanceOffseason(career, players, teams))}>
+              Começar temporada {career.seasonNumber + 1}
+            </button>
+          ) : (
+            <button className="gold-button" onClick={() => commit(simulateNextPostseasonRound(career, players, teams))}>
+              {lifecycle.currentPlayoffRound ? 'Simular próxima rodada' : 'Iniciar playoffs'}
+            </button>
+          )}
+          <small>Nenhuma rodada posterior será executada sem outro clique.</small>
         </div>
       </Panel>
     );
   const home = teamByAbbr(fixture.home);
   const away = teamByAbbr(fixture.away);
+  const opponentTeam = fixture.home === career.teamAbbr ? away : home;
+  const opponentModels = roster(opponentTeam.abbr, career)
+    .slice(0, 10)
+    .map((player) => career.playerModels[player.id]);
+  const average = (key: 'shooting' | 'finishing' | 'defense' | 'rebounding' | 'playmaking') =>
+    Math.round(opponentModels.reduce((sum, model) => sum + (model?.[key] ?? 70), 0) / Math.max(1, opponentModels.length));
+  const opponentProfile = [
+    ['Perímetro', average('shooting')],
+    ['Aro', average('finishing')],
+    ['Criação', average('playmaking')],
+    ['Defesa', average('defense')],
+    ['Rebote', average('rebounding')],
+  ] as const;
+  const opponentPrimary = [...opponentProfile].sort((a, b) => b[1] - a[1])[0];
+  const aiCounter = opponentPrimary[0] === 'Perímetro'
+    ? 'Pressão na bola + transição segura'
+    : opponentPrimary[0] === 'Aro'
+      ? 'Proteção de aro + ataque ao rebote'
+      : 'Trocas seletivas + ritmo controlado';
   const universePlayers = playersForCareer(career);
   const game =
     preview ??
@@ -803,6 +851,13 @@ function GameCenter({
               <span>{home.city}</span>
               <strong>{home.nickname}</strong>
             </div>
+          </div>
+          <div className="opponent-ai-report">
+            <header><Cpu /> LEITURA DA IA · {opponentTeam.abbr}<span>Confiança {Math.min(96, 58 + career.staff.find((item) => item.role === 'Analista')!.level * 7)}%</span></header>
+            <div>
+              {opponentProfile.map(([label, value]) => <p key={label}><span>{label}</span><i><b style={{ width: `${value}%` }} /></i><strong>{value}</strong></p>)}
+            </div>
+            <footer><b>Ameaça principal: {opponentPrimary[0]}</b><span>Contramedida recomendada: {aiCounter}</span></footer>
           </div>
           <div className="lineup-showcase">
             {[away, home].map((side) => (
@@ -918,15 +973,15 @@ function GameCenter({
             <TeamMark team={home} />
             <div
               className="ball"
-              style={{ left: `${event?.x ?? 50}%`, top: `${event?.y ?? 50}%` }}
+              style={{ '--court-x': `${event?.x ?? 50}%`, '--court-y': `${event?.y ?? 50}%` } as React.CSSProperties}
             />
             {teamPlayers(away.abbr).map((player, i) => (
               <div
                 className="court-player away"
                 style={{
-                  left: `${event?.playerId === player.id ? event.x : 18 + i * 13}%`,
-                  top: `${event?.playerId === player.id ? event.y : 22 + ((i * 17) % 58)}%`,
-                }}
+                  '--court-x': `${event?.playerId === player.id ? event.x : 18 + i * 13}%`,
+                  '--court-y': `${event?.playerId === player.id ? event.y : 22 + ((i * 17) % 58)}%`,
+                } as React.CSSProperties}
                 key={player.id}
               >
                 <PlayerFace player={player} small />
@@ -937,9 +992,9 @@ function GameCenter({
               <div
                 className="court-player home"
                 style={{
-                  left: `${event?.playerId === player.id ? event.x : 26 + i * 13}%`,
-                  top: `${event?.playerId === player.id ? event.y : 66 - ((i * 17) % 55)}%`,
-                }}
+                  '--court-x': `${event?.playerId === player.id ? event.x : 26 + i * 13}%`,
+                  '--court-y': `${event?.playerId === player.id ? event.y : 66 - ((i * 17) % 55)}%`,
+                } as React.CSSProperties}
                 key={player.id}
               >
                 <PlayerFace player={player} small />
@@ -1254,7 +1309,7 @@ function App() {
     >
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="brand">
-          <span>V</span>
+          <BrandLogo />
           <div>
             <b>VALE</b>
             <small>BASKET MANAGER</small>
@@ -1410,7 +1465,7 @@ function Landing({ onStart }: { onStart: () => void }) {
       <div className="landing-overlay" />
       <nav>
         <div className="brand">
-          <span>V</span>
+          <BrandLogo />
           <div>
             <b>VALE</b>
             <small>BASKET MANAGER</small>
@@ -1475,6 +1530,7 @@ function ScreenContent({
         roster={ownRoster}
         upcoming={upcoming}
         open={open}
+        commit={commit}
       />
     );
   if (screen === 'roster')
@@ -1501,10 +1557,103 @@ function ScreenContent({
   if (screen === 'finances') return <Finances career={career} />;
   if (screen === 'board') return <Board career={career} />;
   if (screen === 'world') return <World career={career} commit={commit} />;
-  if (screen === 'media') return <Media career={career} />;
+  if (screen === 'media') return <Media career={career} commit={commit} />;
   if (screen === 'profile') return <Profile career={career} />;
   if (screen === 'history') return <History career={career} />;
   return <Licenses />;
+}
+
+function NextActionHub({
+  career,
+  upcoming,
+  open,
+  commit,
+}: {
+  career: CareerV2;
+  upcoming?: Fixture;
+  open: (screen: Screen) => void;
+  commit: (next: CareerV2) => void;
+}) {
+  const status = seasonStatus(career);
+  const objective = objectiveProgress(career);
+  const urgent = career.engagement.pendingDecisions[0];
+  const playoffNames = ['Play-in', 'Primeira rodada', 'Semifinais', 'Finais de conferência', 'Finais da liga'];
+  const nextSeasonAction = () => {
+    if (status.champion) {
+      commit(advanceOffseason(career, players, teams));
+      return;
+    }
+    if (status.regularDone) {
+      commit(simulateNextPostseasonRound(career, players, teams));
+      return;
+    }
+    open('game');
+  };
+  const actionLabel = status.champion
+    ? `Encerrar temporada · campeão ${status.champion}`
+    : status.regularDone
+      ? status.currentPlayoffRound
+        ? `Avançar para ${playoffNames[status.currentPlayoffRound + 1]}`
+        : 'Iniciar primeira rodada dos playoffs'
+      : upcoming
+        ? `Jogar ${upcoming.away} @ ${upcoming.home}`
+        : 'Abrir calendário';
+  return (
+    <section className="next-action-hub">
+      <div className="next-action-main">
+        <span className="urgent-chip"><Zap /> PRÓXIMA AÇÃO</span>
+        <h2>{urgent ? urgent.title : actionLabel}</h2>
+        <p>
+          {urgent
+            ? `${urgent.body} · prazo: ${urgent.deadline}.`
+            : status.champion
+              ? 'A offseason processará contratos, draft, aposentadorias e abrirá uma nova temporada.'
+              : status.regularDone
+                ? 'Cada rodada é simulada separadamente. Nada será pulado sem um comando seu.'
+                : 'O fluxo principal leva diretamente ao próximo compromisso da franquia.'}
+        </p>
+        {urgent ? (
+          <div className="decision-buttons">
+            {urgent.choices.map((choice) => (
+              <button
+                className="gold-button"
+                key={choice.id}
+                onClick={() => commit(resolveManagerDecision(career, urgent.id, choice.id))}
+              >
+                {choice.label}<small>{choice.consequence}</small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button className="gold-button next-action-button" onClick={nextSeasonAction}>
+            <Play /> {actionLabel}
+          </button>
+        )}
+      </div>
+      <div className="engagement-rail">
+        <article>
+          <span>OBJETIVO SEMANAL</span>
+          <b>{career.engagement.weeklyObjective.title}</b>
+          <p>{career.engagement.weeklyObjective.description}</p>
+          <div className="objective-meter"><i style={{ width: `${Math.min(100, (objective.games / career.engagement.weeklyObjective.targetGames) * 100)}%` }} /></div>
+          <small>{objective.wins}/{career.engagement.weeklyObjective.targetWins} vitórias · {objective.games}/{career.engagement.weeklyObjective.targetGames} jogos</small>
+          {objective.complete && !career.engagement.weeklyObjective.claimed && (
+            <button className="reward-button" onClick={() => commit(claimWeeklyObjective(career))}>Resgatar $750 mil + 2 REP</button>
+          )}
+          {objective.failed && <em>Objetivo encerrado. Uma nova missão virá na próxima temporada.</em>}
+          {career.engagement.weeklyObjective.claimed && <em>✓ Recompensa resgatada</em>}
+        </article>
+        <article className="rivalry-card">
+          <span>RIVALIDADE ATIVA</span>
+          <div><TeamMark team={teamByAbbr(career.engagement.rivalryTeam)} small /><b>{career.engagement.rivalryTeam}</b></div>
+          <p>Calor {career.engagement.rivalryHeat}/100 · entrevistas e confrontos alteram o clima.</p>
+        </article>
+        <button className="inbox-button" onClick={() => open('media')}>
+          <Newspaper /> Caixa de entrada <b>{career.engagement.pendingDecisions.length + career.news.slice(0, 5).length}</b>
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function Dashboard({
@@ -1513,12 +1662,14 @@ function Dashboard({
   roster: ownRoster,
   upcoming,
   open,
+  commit,
 }: {
   career: CareerV2;
   team: Team;
   roster: Player[];
   upcoming?: Fixture;
   open: (screen: Screen) => void;
+  commit: (next: CareerV2) => void;
 }) {
   const opponent = upcoming
     ? teamByAbbr(upcoming.home === team.abbr ? upcoming.away : upcoming.home)
@@ -1549,6 +1700,7 @@ function Dashboard({
         </div>
         <TeamMark team={team} />
       </section>
+      <NextActionHub career={career} upcoming={upcoming} open={open} commit={commit} />
       <nav className="cinematic-actions" aria-label="Atalhos principais">
         <button className="featured" onClick={() => open('game')}>
           <span><Gamepad2 /></span>
@@ -1853,6 +2005,13 @@ function TacticsScreen({
 }) {
   const set = (key: keyof CareerV2['tactics'], value: string | number) =>
     commit({ ...career, tactics: { ...career.tactics, [key]: value } });
+  const paceDelta = Math.round((career.tactics.pace - 55) / 6);
+  const tacticalEffects = [
+    { label: 'Ritmo projetado', value: `${career.tactics.pace > 62 ? '+' : ''}${paceDelta} posses`, detail: career.tactics.pace > 65 ? 'Mais transição e fadiga' : 'Mais controle e meia quadra' },
+    { label: 'Ataque', value: career.tactics.offense, detail: career.tactics.offense === '5-out' ? '+espaçamento · -rebote ofensivo' : career.tactics.offense === 'Poste baixo' ? '+faltas sofridas · ritmo menor' : 'Sem extremos estatísticos' },
+    { label: 'Defesa', value: career.tactics.defense, detail: career.tactics.defense === 'Pressão na bola' ? '+roubos · +faltas e cansaço' : career.tactics.defense === 'Proteção de aro' ? '-pontos no garrafão · +3PT cedidos' : 'Equilíbrio contra trocas' },
+    { label: 'Rebotes', value: career.tactics.rebounding, detail: career.tactics.rebounding === 'Ataque ao rebote' ? '+segundas chances · -transição defensiva' : career.tactics.rebounding === 'Transição segura' ? '-rebote ofensivo · menos contra-ataques' : '+controle do garrafão' },
+  ];
   return (
     <>
       <PageTitle
@@ -1916,6 +2075,16 @@ function TacticsScreen({
             <Cpu /> Foco: {career.tactics.focus}
           </span>
         </div>
+        <div className="tactical-impact-grid">
+          {tacticalEffects.map((effect) => (
+            <article key={effect.label}>
+              <span>{effect.label}</span>
+              <b>{effect.value}</b>
+              <small>{effect.detail}</small>
+            </article>
+          ))}
+        </div>
+        <p className="minor-note">Esses modificadores entram no motor de posse, seleção de arremessos, rebotes, faltas e desgaste. A leitura acima muda imediatamente com cada escolha.</p>
       </Panel>
     </>
   );
@@ -2095,7 +2264,8 @@ function Calendar({
     (fixture) => fixture.home === team.abbr || fixture.away === team.abbr,
   );
   const played = games.filter((game) => game.status === 'played').length;
-  const regularDone = played === 82;
+  const status = seasonStatus(career);
+  const regularDone = status.regularDone;
   const sim = (rounds: number) =>
     commit(simulateRounds(career, players, rounds));
   return (
@@ -2125,29 +2295,34 @@ function Calendar({
                 </button>
               </>
             )}
-            {regularDone && career.playoffs.length === 0 && (
+            {regularDone && !status.champion && (
               <button
                 className="gold-button"
                 onClick={() =>
-                  commit(simulatePostseason(career, players, teams))
+                  commit(simulateNextPostseasonRound(career, players, teams))
                 }
               >
-                Simular playoffs completos
+                {status.currentPlayoffRound === 0
+                  ? 'Iniciar playoffs · Rodada 1'
+                  : `Simular somente a rodada ${status.currentPlayoffRound + 1}`}
               </button>
             )}
-            {career.playoffs.some(
-              (series) => series.round === 4 && series.winner,
-            ) && (
+            {status.champion && (
               <button
                 className="gold-button"
                 onClick={() => commit(advanceOffseason(career, players, teams))}
               >
-                Avançar offseason
+                Processar offseason e começar temporada {career.seasonNumber + 1}
               </button>
             )}
           </div>
         }
       >
+        <div className={`season-flow ${status.champion ? 'champion' : regularDone ? 'playoffs' : 'regular'}`}>
+          <div><span>FASE ATUAL</span><b>{status.champion ? 'Temporada concluída' : regularDone ? `Playoffs · rodada ${status.currentPlayoffRound || 1}` : 'Temporada regular'}</b></div>
+          <div><span>PROGRESSO</span><b>{regularDone ? status.champion ? `Campeão: ${status.champion}` : `${career.playoffs.length} séries registradas` : `${played}/82 jogos`}</b></div>
+          <p>{status.champion ? 'O botão acima abre a offseason, executa o draft e reinicia o calendário. Seu save não ficará preso.' : regularDone ? 'Uma rodada por clique: os playoffs não podem mais ser simulados sem querer.' : 'Fast Sim processa apenas rodadas da temporada regular.'}</p>
+        </div>
         <div className="schedule-list">
           {games
             .filter((fixture) => fixture.status === 'scheduled')
@@ -2185,7 +2360,7 @@ function Calendar({
 function League({ career }: { career: CareerV2 }) {
   const [view, setView] = useState<'all' | 'East' | 'West'>('all');
   const sorted = standingsSorted(career.standings).filter(
-    (record) => view === 'all' || teamByAbbr(record.team).conference === view,
+    (record) => view === 'all' || teamByAbbr(record.team).conference.startsWith(view),
   );
   const dayGames = career.fixtures.filter(
     (fixture) => fixture.date === career.currentDate,
@@ -2447,6 +2622,9 @@ function Market({
   const rivalRoster = roster(rival.abbr, career);
   const [ownId, setOwnId] = useState(own[0]?.id ?? 0);
   const [rivalId, setRivalId] = useState(rivalRoster[0]?.id ?? 0);
+  const [offerYears, setOfferYears] = useState(2);
+  const [offerPercent, setOfferPercent] = useState(105);
+  const [negotiationMessage, setNegotiationMessage] = useState('');
   const propose = () => {
     const proposal = evaluateTrade(
       career.economy,
@@ -2497,12 +2675,28 @@ function Market({
   };
   const sign = (player: Player) => {
     if (own.length >= 18) return alert('Roster no limite máximo do ruleset.');
+    const desired = career.economy.contracts[player.id]?.salary ?? 1_200_000;
+    const offered = Math.round((desired * offerPercent) / 100);
+    const acceptance = offerPercent + offerYears * 2 + Math.round(career.manager.reputation / 12);
     const next = structuredClone(career);
+    if (acceptance < 108) {
+      next.news.unshift({
+        id: `fa-rejected-${player.id}-${Date.now()}`,
+        date: next.currentDate,
+        category: 'market',
+        title: `${player.name} recusa a primeira oferta`,
+        body: `Oferta de ${money(offered)} por ${offerYears} ano(s) ficou abaixo da expectativa. Aumente o salário, o prazo ou sua reputação.`,
+      });
+      setNegotiationMessage(`${player.lastName} recusou: proposta precisa de mais segurança ou valor.`);
+      commit(next);
+      return;
+    }
     next.economy.contracts[player.id] = {
       ...next.economy.contracts[player.id],
       team: career.teamAbbr,
       status: 'active',
-      years: 1,
+      years: offerYears,
+      salary: offered,
       source: 'SIMULATION',
     };
     next.health[player.id] = { fatigue: 10, condition: 94 };
@@ -2512,8 +2706,9 @@ function Market({
       date: next.currentDate,
       category: 'market',
       title: `${player.name} assina contrato de simulação`,
-      body: 'Contrato de gameplay gerado pelo ruleset SIMULATION; não representa contrato oficial real.',
+      body: `${money(offered)} por ${offerYears} ano(s). Contrato de gameplay SIMULATION; não representa contrato oficial real.`,
     });
+    setNegotiationMessage(`${player.lastName} aceitou: ${money(offered)} por ${offerYears} ano(s).`);
     commit(next);
   };
   return (
@@ -2525,6 +2720,12 @@ function Market({
       />
       <div className="office-grid">
         <Panel title="Agentes livres">
+          <div className="negotiation-console">
+            <label>Anos <select value={offerYears} onChange={(event) => setOfferYears(Number(event.target.value))}><option value={1}>1 ano</option><option value={2}>2 anos</option><option value={3}>3 anos</option><option value={4}>4 anos</option></select></label>
+            <label>Valor sobre a pedida <b>{offerPercent}%</b><input type="range" min="80" max="130" value={offerPercent} onChange={(event) => setOfferPercent(Number(event.target.value))} /></label>
+            <p>Agente avalia salário, duração e reputação do manager. Uma recusa fica registrada, mas não bloqueia nova oferta.</p>
+            {negotiationMessage && <strong>{negotiationMessage}</strong>}
+          </div>
           <div className="market-list">
             {freeAgents.length ? (
               freeAgents.map((player) => (
@@ -2542,7 +2743,7 @@ function Market({
                     {career.economy.contracts[player.id]?.years} ano(s)
                   </span>
                   <button className="ghost-button" onClick={() => sign(player)}>
-                    Negociar e assinar
+                    Enviar oferta
                   </button>
                 </article>
               ))
@@ -2717,6 +2918,9 @@ function Draft({
                 <i style={{ width: `${prospect.scouting}%` }} />
               </div>
               <small>{prospect.scouting}% observado</small>
+              <strong className="scouting-range">
+                OVR estimado {Math.max(58, 82 - Math.floor(index / 2) - Math.max(2, Math.ceil((100 - prospect.scouting) / 12)))}–{Math.min(94, 82 - Math.floor(index / 2) + Math.max(2, Math.ceil((100 - prospect.scouting) / 12)))}
+              </strong>
               <p>{prospect.note}</p>
               <button
                 className="ghost-button"
@@ -2728,7 +2932,12 @@ function Draft({
                       item.id === prospect.id
                         ? {
                             ...item,
-                            scouting: Math.min(100, item.scouting + 15),
+                            scouting: Math.min(
+                              100,
+                              item.scouting +
+                                8 +
+                                (career.staff.find((staff) => staff.role === 'Analista')?.level ?? 1) * 3,
+                            ),
                           }
                         : item,
                     ),
@@ -3094,14 +3303,34 @@ function History({ career }: { career: CareerV2 }) {
     </>
   );
 }
-function Media({ career }: { career: CareerV2 }) {
+function Media({ career, commit }: { career: CareerV2; commit: (next: CareerV2) => void }) {
   return (
     <>
       <PageTitle
         kicker="CARREIRA"
-        title="Mídia e universo"
-        copy="Notícias são geradas a partir de resultados, treinos e eventos registrados no save."
+        title="Caixa de entrada e mídia"
+        copy="Decisões, entrevistas e histórias produzem consequências reais no seu save."
       />
+      {career.engagement.pendingDecisions.length > 0 && (
+        <Panel title={`${career.engagement.pendingDecisions.length} decisão(ões) urgente(s)`} className="urgent-inbox">
+          <div className="decision-list">
+            {career.engagement.pendingDecisions.map((decision) => (
+              <article key={decision.id}>
+                <span>{decision.category.toUpperCase()} · {decision.deadline}</span>
+                <h3>{decision.title}</h3>
+                <p>{decision.body}</p>
+                <div className="decision-buttons">
+                  {decision.choices.map((choice) => (
+                    <button className="ghost-button" key={choice.id} onClick={() => commit(resolveManagerDecision(career, decision.id, choice.id))}>
+                      <b>{choice.label}</b><small>{choice.consequence}</small>
+                    </button>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </Panel>
+      )}
       <Panel title="Feed">
         <div className="news-feed">
           {career.news.map((news) => (
