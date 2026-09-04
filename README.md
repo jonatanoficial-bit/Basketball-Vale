@@ -1,9 +1,18 @@
-# VALE BASKET MANAGER — v3.0 World & Release
+# VALE BASKET MANAGER — v4.0 Cinematic Game Day
 
-Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega final preserva Foundation e Simulation e acrescenta Franchise World, arena, ledger, legado e acessibilidade.
+Jogo web/PWA funcional, preparado para GitHub Pages. Esta entrega preserva Foundation, Simulation e World & Release e acrescenta a primeira evolução comercial: reforma visual e apresentação audiovisual.
 
 ## Conteúdo desta entrega
 
+- Abertura audiovisual executada em toda inicialização: botão de entrada, vídeo com som e opção de pular.
+- Sete músicas fornecidas pelo responsável, reproduzidas em ordem aleatória durante o jogo.
+- Controle musical discreto e Configurações persistentes de ativação e volume.
+- Dashboard cinematográfico com logo da franquia protagonista, atalhos grandes e cards dos principais atletas.
+- Navegação ampliada e mais legível, mantendo todas as áreas existentes.
+- Uso contextual dos seis cenários fornecidos: arena, campus, vestiário, treino e ambiente executivo.
+- Game Day com apresentação do confronto, quintetos iniciais e entrada na quadra.
+- Placar em estilo broadcast, quadra 2.5D, atleta da posse em movimento, som sintetizado da arena e celebração final.
+- Layout adaptado para desktop e mobile, com redução de movimento respeitada.
 - 30 franquias da NBA com nomes e escudos oficiais.
 - 581 atletas listados pela NBA em 31/08/2026: 580 vinculados às franquias e 1 agente livre.
 - Retrato oficial local para os 581 atletas; o site não depende do computador que gerou o ZIP.

@@ -21,6 +21,29 @@ Captura realizada em 31/08/2026. O relatório de download registra zero falhas e
 - `executive-suite.png`
 - `og.png`
 
+## Vídeo de abertura
+
+- Arquivo: `public/assets/video/abertura-vale-basketball.mp4`
+- Estado: integrado à tela de inicialização, com reprodução sonora após interação e opção de pular.
+- SHA-256: `A3E94221D787429CC679C134D364AC2DACC8C62FD2C1D7E8B453ED4DC094F938`
+- Fluxo: tela inicial com marca e botão **Iniciar**; o clique inicia o vídeo com som e mantém um botão **Pular** visível.
+
+O vídeo entra no build estático e funciona no GitHub Pages sem depender de caminho local.
+
+## Trilha musical
+
+Sete arquivos fornecidos pelo usuário foram normalizados e copiados para `public/assets/audio`:
+
+- `bola-na-ginga.mp3`
+- `quadra-em-fogo.mp3`
+- `quadra-em-fogo-alt.mp3`
+- `quadra-em-fumaca.mp3`
+- `quadra-em-fumaca-alt.mp3`
+- `quadra-em-veludo.mp3`
+- `quadra-em-veludo-alt.mp3`
+
+As faixas são escolhidas aleatoriamente, sem repetição imediata. Música ativada/desativada e volume são preferências locais independentes do save da carreira.
+
 ## Criar Clube
 
 Cinco emblemas autorais foram copiados para `public/assets/create-club`. Eles são exibidos apenas no laboratório Criar Clube e não substituem qualquer escudo oficial.

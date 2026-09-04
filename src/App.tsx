@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Activity,
   Award,
@@ -23,13 +23,19 @@ import {
   Play,
   Radar,
   RotateCcw,
+  Settings,
   Shield,
   ShieldCheck,
   SlidersHorizontal,
+  SkipForward,
+  Sparkles,
   Star,
   Trophy,
   UserRound,
   Users,
+  Volume2,
+  VolumeX,
+  Zap,
   X,
 } from 'lucide-react';
 import {
@@ -92,7 +98,8 @@ type Screen =
   | 'profile'
   | 'licenses'
   | 'world'
-  | 'history';
+  | 'history'
+  | 'settings';
 type CreatorDraft = {
   name: string;
   origin: string;
@@ -146,6 +153,7 @@ const nav = [
       ['media', 'media', Newspaper],
       ['profile', 'profile', Award],
       ['history', 'history', Trophy],
+      ['settings', 'settings', Settings],
       ['licenses', 'licenses', ShieldCheck],
     ],
   ],
@@ -170,6 +178,38 @@ const playersForCareer = (career: CareerV2) =>
     team: career.economy.contracts[player.id]?.team ?? player.team,
   }));
 const img = (path: string) => asset(path.replace(/^\//, ''));
+const backgroundByScreen: Record<Exclude<Screen, 'landing' | 'creator'>, string> = {
+  dashboard: 'home-arena.png',
+  roster: 'locker-room.png',
+  rotation: 'training-center.png',
+  tactics: 'training-center.png',
+  training: 'training-center.png',
+  staff: 'executive-suite.png',
+  game: 'team-arena.png',
+  calendar: 'team-arena.png',
+  league: 'franchise-campus.png',
+  stats: 'franchise-campus.png',
+  market: 'executive-suite.png',
+  scouting: 'franchise-campus.png',
+  draft: 'franchise-campus.png',
+  finances: 'executive-suite.png',
+  board: 'executive-suite.png',
+  media: 'home-arena.png',
+  profile: 'locker-room.png',
+  licenses: 'franchise-campus.png',
+  world: 'franchise-campus.png',
+  history: 'home-arena.png',
+  settings: 'executive-suite.png',
+};
+const musicTracks = [
+  ['Quadra em Fogo', 'assets/audio/quadra-em-fogo.mp3'],
+  ['Quadra em Fogo II', 'assets/audio/quadra-em-fogo-alt.mp3'],
+  ['Quadra em Fumaça', 'assets/audio/quadra-em-fumaca.mp3'],
+  ['Quadra em Fumaça II', 'assets/audio/quadra-em-fumaca-alt.mp3'],
+  ['Quadra em Veludo', 'assets/audio/quadra-em-veludo.mp3'],
+  ['Quadra em Veludo II', 'assets/audio/quadra-em-veludo-alt.mp3'],
+  ['Bola na Ginga', 'assets/audio/bola-na-ginga.mp3'],
+] as const;
 const statAverage = (stats: StatLine, key: keyof StatLine) =>
   stats.gp ? (stats[key] / stats.gp).toFixed(1) : '0.0';
 
@@ -258,6 +298,180 @@ function PageTitle({
   );
 }
 
+function IntroGate({ onComplete }: { onComplete: () => void }) {
+  const [playing, setPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const start = async () => {
+    setVideoError(false);
+    setPlaying(true);
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    video.muted = false;
+    video.volume = 1;
+    try {
+      await video.play();
+    } catch {
+      setVideoError(true);
+    }
+  };
+  const skip = () => {
+    videoRef.current?.pause();
+    onComplete();
+  };
+  return (
+    <main
+      className={`intro-gate ${playing ? 'is-playing' : ''}`}
+      style={{ backgroundImage: `url(${img('assets/backgrounds/home-arena.png')})` }}
+    >
+      <video
+        ref={videoRef}
+        className="intro-video"
+        src={img('assets/video/abertura-vale-basketball.mp4')}
+        playsInline
+        preload="metadata"
+        onEnded={onComplete}
+        onError={() => setVideoError(true)}
+      />
+      <div className="intro-shade" />
+      <section className="intro-brand" aria-hidden={playing}>
+        <div className="intro-emblem">V</div>
+        <p>VALE BASKETBALL MANAGER</p>
+        <h1>Construa uma dinastia.</h1>
+        <button className="intro-start" onClick={start}>
+          <Play fill="currentColor" /> Iniciar experiência
+        </button>
+        <span>O vídeo será reproduzido com som</span>
+      </section>
+      {playing && (
+        <div className="intro-controls">
+          {videoError && (
+            <button className="intro-retry" onClick={start}>
+              <Volume2 /> Ativar som e tentar novamente
+            </button>
+          )}
+          <button className="intro-skip" onClick={skip}>
+            Pular abertura <SkipForward />
+          </button>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Soundtrack({
+  enabled,
+  volume,
+  onEnabled,
+  onVolume,
+  onOpenSettings,
+}: {
+  enabled: boolean;
+  volume: number;
+  onEnabled: (enabled: boolean) => void;
+  onVolume: (volume: number) => void;
+  onOpenSettings: () => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [trackIndex, setTrackIndex] = useState(() => Math.floor(Math.random() * musicTracks.length));
+  const [blocked, setBlocked] = useState(false);
+  const chooseNext = () =>
+    setTrackIndex((current) => {
+      if (musicTracks.length < 2) return current;
+      let next = current;
+      while (next === current) next = Math.floor(Math.random() * musicTracks.length);
+      return next;
+    });
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = volume;
+    if (enabled) {
+      void audio.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+    } else {
+      audio.pause();
+      setBlocked(false);
+    }
+  }, [enabled, trackIndex, volume]);
+  const toggle = () => {
+    onEnabled(!enabled);
+    if (!enabled) setBlocked(false);
+  };
+  const resumeOrNext = () => {
+    if (blocked && audioRef.current) {
+      void audioRef.current.play().then(() => setBlocked(false));
+      return;
+    }
+    chooseNext();
+  };
+  return (
+    <aside className="music-dock" aria-label="Trilha musical">
+      <audio
+        ref={audioRef}
+        src={img(musicTracks[trackIndex][1])}
+        onEnded={chooseNext}
+        preload="metadata"
+      />
+      <button className="music-main" onClick={toggle} aria-label={enabled ? 'Desativar música' : 'Ativar música'}>
+        {enabled && !blocked ? <Volume2 /> : <VolumeX />}
+      </button>
+      <button className="music-title" onClick={resumeOrNext}>
+        <small>{blocked ? 'CLIQUE PARA OUVIR' : enabled ? 'TOCANDO AGORA' : 'MÚSICA DESATIVADA'}</small>
+        <b>{musicTracks[trackIndex][0]}</b>
+      </button>
+      <button className="music-next" onClick={chooseNext} aria-label="Próxima música"><SkipForward /></button>
+      <button className="music-settings" onClick={onOpenSettings} aria-label="Configurações de áudio"><Settings /></button>
+      <input
+        aria-label="Volume da música"
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={volume}
+        onChange={(event) => onVolume(Number(event.target.value))}
+      />
+    </aside>
+  );
+}
+
+function SettingsScreen({
+  enabled,
+  volume,
+  onEnabled,
+  onVolume,
+}: {
+  enabled: boolean;
+  volume: number;
+  onEnabled: (enabled: boolean) => void;
+  onVolume: (volume: number) => void;
+}) {
+  return (
+    <>
+      <PageTitle kicker="PREFERÊNCIAS" title="Configurações do jogo" copy="Controle a experiência audiovisual sem alterar sua carreira." />
+      <div className="settings-grid">
+        <Panel title="Áudio e música">
+          <div className="setting-row">
+            <div><b>Trilha musical</b><span>Reproduz as sete faixas em ordem aleatória.</span></div>
+            <button className={enabled ? 'setting-toggle active' : 'setting-toggle'} onClick={() => onEnabled(!enabled)}>
+              {enabled ? <Volume2 /> : <VolumeX />} {enabled ? 'Ligada' : 'Desligada'}
+            </button>
+          </div>
+          <label className="volume-setting">
+            <span>Volume <b>{Math.round(volume * 100)}%</b></span>
+            <input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => onVolume(Number(event.target.value))} />
+          </label>
+        </Panel>
+        <Panel title="Faixas instaladas">
+          <div className="track-library">
+            {musicTracks.map(([title], index) => <span key={title}><b>{String(index + 1).padStart(2, '0')}</b>{title}</span>)}
+          </div>
+        </Panel>
+      </div>
+    </>
+  );
+}
+
 function Creator({
   onCreate,
   onBack,
@@ -278,7 +492,12 @@ function Creator({
     setDraft((current) => ({ ...current, [key]: value }));
   const chosen = teamByAbbr(draft.teamAbbr);
   return (
-    <main className="creator-screen">
+    <main
+      className="creator-screen"
+      style={{
+        backgroundImage: `linear-gradient(100deg, #020711f2, #061224cf), url(${img('assets/backgrounds/executive-suite.png')})`,
+      }}
+    >
       <button className="back-link" onClick={onBack}>
         <ChevronLeft size={18} /> Voltar à abertura
       </button>
@@ -428,21 +647,56 @@ function GameCenter({
   const [running, setRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [tab, setTab] = useState<'court' | 'box' | 'pbp' | 'advanced'>('court');
+  const [pregame, setPregame] = useState(true);
+  const [arenaSound, setArenaSound] = useState(true);
+  const audioContext = useRef<AudioContext | null>(null);
+  const ensureArenaAudio = () => {
+    if (!audioContext.current) audioContext.current = new AudioContext();
+    if (audioContext.current.state === 'suspended') void audioContext.current.resume();
+    return audioContext.current;
+  };
+  const playArenaTone = (kind: 'anthem' | 'score' | 'court') => {
+    if (!arenaSound) return;
+    const context = ensureArenaAudio();
+    const notes = kind === 'anthem' ? [220, 330, 440] : [kind === 'score' ? 520 : 180];
+    notes.forEach((frequency, noteIndex) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = kind === 'court' ? 'triangle' : 'sine';
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, context.currentTime + noteIndex * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.045, context.currentTime + noteIndex * 0.12 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + noteIndex * 0.12 + 0.22);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(context.currentTime + noteIndex * 0.12);
+      oscillator.stop(context.currentTime + noteIndex * 0.12 + 0.24);
+    });
+  };
   useEffect(() => {
     setPreview(null);
     setIndex(0);
     setRunning(false);
+    setPregame(true);
   }, [fixture?.id]);
+  useEffect(
+    () => () => {
+      if (audioContext.current) void audioContext.current.close();
+    },
+    [],
+  );
   useEffect(() => {
     if (!running || !preview || index >= preview.events.length) return;
     const timer = window.setTimeout(
-      () =>
+      () => {
+        if (index > 0 && index % 11 === 0)
+          playArenaTone(index % 33 === 0 ? 'score' : 'court');
         setIndex((current) =>
           Math.min(
             preview.events.length,
             current + Math.max(1, Math.round(speed * 2)),
           ),
-        ),
+        );
+      },
       Math.max(90, 650 / speed),
     );
     return () => window.clearTimeout(timer);
@@ -516,15 +770,100 @@ function GameCenter({
     setRunning(false);
   };
   const teamPlayers = (abbr: string) => roster(abbr, career).slice(0, 5);
+  if (pregame)
+    return (
+      <div className="game-center pregame-wrap">
+        <section
+          className="pregame-stage"
+          style={
+            {
+              '--home-color': home.primary,
+              '--away-color': away.primary,
+            } as React.CSSProperties
+          }
+        >
+          <div className="pregame-lights" />
+          <header>
+            <span><Sparkles /> APRESENTAÇÃO OFICIAL</span>
+            <b>{dateLabel(fixture.date)} · VALE GAME DAY</b>
+          </header>
+          <div className="pregame-matchup">
+            <div className="pregame-team away">
+              <TeamMark team={away} />
+              <span>{away.city}</span>
+              <strong>{away.nickname}</strong>
+            </div>
+            <div className="pregame-versus">
+              <small>TEMPORADA 2026–27</small>
+              <b>VS</b>
+              <span>{fixture.home === career.teamAbbr ? 'EM CASA' : 'FORA DE CASA'}</span>
+            </div>
+            <div className="pregame-team home">
+              <TeamMark team={home} />
+              <span>{home.city}</span>
+              <strong>{home.nickname}</strong>
+            </div>
+          </div>
+          <div className="lineup-showcase">
+            {[away, home].map((side) => (
+              <div className="lineup-team" key={side.abbr}>
+                <p><TeamMark team={side} small /> QUINTETO INICIAL · {side.abbr}</p>
+                <div>
+                  {teamPlayers(side.abbr).map((player) => (
+                    <article key={player.id}>
+                      <PlayerFace player={player} />
+                      <b>{player.lastName}</b>
+                      <small>#{player.jersey || '—'} · {player.position}</small>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <footer>
+            <button
+              className="gold-button game-entry"
+              onClick={() => {
+                setPreview(game);
+                setPregame(false);
+                setRunning(true);
+                playArenaTone('anthem');
+              }}
+            >
+              <Zap /> Entrar em quadra
+            </button>
+            <button
+              className="ghost-button"
+              onClick={() => {
+                setPreview(game);
+                setPregame(false);
+              }}
+            >
+              Pular apresentação
+            </button>
+          </footer>
+        </section>
+      </div>
+    );
   return (
     <div className="game-center">
       <Panel
         title="Game Center"
-        action={
-          <span className="live-chip">
-            {final ? 'FINAL' : `AO VIVO · ${game.engineVersion}`}
-          </span>
-        }
+        action={<div className="broadcast-actions">
+          <button
+            className="sound-toggle"
+            onClick={() => {
+              const next = !arenaSound;
+              setArenaSound(next);
+              if (next) ensureArenaAudio();
+            }}
+            aria-label={arenaSound ? 'Desativar som da arena' : 'Ativar som da arena'}
+          >
+            {arenaSound ? <Volume2 /> : <VolumeX />}
+            <span>{arenaSound ? 'SOM ATIVO' : 'SEM SOM'}</span>
+          </button>
+          <span className="live-chip">{final ? 'FINAL' : `AO VIVO · ${game.engineVersion}`}</span>
+        </div>}
       >
         <div className="scoreboard">
           <div>
@@ -572,10 +911,11 @@ function GameCenter({
           ))}
         </div>
         {tab === 'court' && (
-          <div className="court">
+          <div className={`court broadcast-court ${final ? 'game-finished' : ''}`}>
             <div className="court-line center" />
             <div className="paint left" />
             <div className="paint right" />
+            <TeamMark team={home} />
             <div
               className="ball"
               style={{ left: `${event?.x ?? 50}%`, top: `${event?.y ?? 50}%` }}
@@ -584,8 +924,8 @@ function GameCenter({
               <div
                 className="court-player away"
                 style={{
-                  left: `${18 + i * 13}%`,
-                  top: `${22 + ((i * 17) % 58)}%`,
+                  left: `${event?.playerId === player.id ? event.x : 18 + i * 13}%`,
+                  top: `${event?.playerId === player.id ? event.y : 22 + ((i * 17) % 58)}%`,
                 }}
                 key={player.id}
               >
@@ -597,8 +937,8 @@ function GameCenter({
               <div
                 className="court-player home"
                 style={{
-                  left: `${26 + i * 13}%`,
-                  top: `${66 - ((i * 17) % 55)}%`,
+                  left: `${event?.playerId === player.id ? event.x : 26 + i * 13}%`,
+                  top: `${event?.playerId === player.id ? event.y : 66 - ((i * 17) % 55)}%`,
                 }}
                 key={player.id}
               >
@@ -609,6 +949,14 @@ function GameCenter({
             <div className="event-banner">
               {event?.text ?? 'Aqueça a partida e controle cada posse.'}
             </div>
+            {final && (
+              <div className="finale-overlay">
+                <Trophy />
+                <span>FIM DE JOGO</span>
+                <strong>{game.awayScore} — {game.homeScore}</strong>
+                <b>{game.homeScore === game.awayScore ? 'DECISÃO ENCERRADA' : (game.homeScore > game.awayScore ? home.name : away.name)}</b>
+              </div>
+            )}
           </div>
         )}
         {tab === 'box' && <BoxScore game={game} career={career} />}
@@ -650,6 +998,7 @@ function GameCenter({
                 : () => {
                     setPreview(game);
                     setRunning((current) => !current);
+                    ensureArenaAudio();
                   }
             }
           >
@@ -840,6 +1189,17 @@ function TacticsInline({
 }
 
 function App() {
+  const [introComplete, setIntroComplete] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(
+    () => localStorage.getItem('vale-music-enabled') !== 'false',
+  );
+  const [musicVolume, setMusicVolume] = useState(() => {
+    const saved = localStorage.getItem('vale-music-volume');
+    const parsed = Number(saved);
+    return saved === null || !Number.isFinite(parsed)
+      ? 0.3
+      : Math.min(1, Math.max(0, parsed));
+  });
   const [career, setCareer] = useState<CareerV2 | null>(() => loadCareer());
   const [screen, setScreen] = useState<Screen>(() =>
     loadCareer() ? 'dashboard' : 'landing',
@@ -850,6 +1210,12 @@ function App() {
     setCareer(next);
     persistCareer(next);
   };
+  useEffect(() => {
+    localStorage.setItem('vale-music-enabled', String(musicEnabled));
+  }, [musicEnabled]);
+  useEffect(() => {
+    localStorage.setItem('vale-music-volume', String(musicVolume));
+  }, [musicVolume]);
   const newCareer = (draft: CreatorDraft) => {
     const save = makeCareer(teamByAbbr(draft.teamAbbr), {
       name: draft.name.trim() || 'Manager Vale',
@@ -862,6 +1228,8 @@ function App() {
     commit(save);
     setScreen('dashboard');
   };
+  if (!introComplete)
+    return <IntroGate onComplete={() => setIntroComplete(true)} />;
   if (!career && screen === 'creator')
     return <Creator onCreate={newCareer} onBack={() => setScreen('landing')} />;
   if (!career) return <Landing onStart={() => setScreen('creator')} />;
@@ -876,6 +1244,13 @@ function App() {
   return (
     <div
       className={`app-shell ${career.world.accessibility.highContrast ? 'high-contrast' : ''} ${career.world.accessibility.reducedMotion ? 'reduced-motion' : ''}`}
+      style={
+        {
+          '--team-primary': ownTeam.primary,
+          '--team-secondary': ownTeam.secondary,
+          '--screen-bg': `url(${img(`assets/backgrounds/${backgroundByScreen[screen as Exclude<Screen, 'landing' | 'creator'>]}`)})`,
+        } as React.CSSProperties
+      }
     >
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="brand">
@@ -933,6 +1308,7 @@ function App() {
                     | 'board'
                     | 'media'
                     | 'profile'
+                    | 'settings'
                     | 'licenses',
                 )}
               </button>
@@ -990,7 +1366,14 @@ function App() {
           </div>
         </header>
         <div className="content">
-          {activePlayer ? (
+          {screen === 'settings' ? (
+            <SettingsScreen
+              enabled={musicEnabled}
+              volume={musicVolume}
+              onEnabled={setMusicEnabled}
+              onVolume={setMusicVolume}
+            />
+          ) : activePlayer ? (
             <PlayerProfile
               player={activePlayer}
               career={career}
@@ -1010,6 +1393,13 @@ function App() {
           )}
         </div>
       </main>
+      <Soundtrack
+        enabled={musicEnabled}
+        volume={musicVolume}
+        onEnabled={setMusicEnabled}
+        onVolume={setMusicVolume}
+        onOpenSettings={() => open('settings')}
+      />
     </div>
   );
 }
@@ -1133,13 +1523,12 @@ function Dashboard({
   const opponent = upcoming
     ? teamByAbbr(upcoming.home === team.abbr ? upcoming.away : upcoming.home)
     : null;
-  const top = ownRoster[0];
   return (
     <>
       <section
         className="hero-banner"
         style={{
-          backgroundImage: `linear-gradient(90deg, #061223ea, #06122388), url(${img('assets/backgrounds/team-arena.png')})`,
+          backgroundImage: `linear-gradient(90deg, #020711f5 0%, ${team.primary}dd 48%, #02071177 100%), url(${img('assets/backgrounds/team-arena.png')})`,
         }}
       >
         <div>
@@ -1160,6 +1549,25 @@ function Dashboard({
         </div>
         <TeamMark team={team} />
       </section>
+      <nav className="cinematic-actions" aria-label="Atalhos principais">
+        <button className="featured" onClick={() => open('game')}>
+          <span><Gamepad2 /></span>
+          <div><b>Game Day</b><small>Entre na arena</small></div>
+          <Play />
+        </button>
+        <button onClick={() => open('roster')}>
+          <span><Users /></span>
+          <div><b>Meu elenco</b><small>Jogadores e funções</small></div>
+        </button>
+        <button onClick={() => open('market')}>
+          <span><Handshake /></span>
+          <div><b>Mercado</b><small>Construa o próximo movimento</small></div>
+        </button>
+        <button onClick={() => open('league')}>
+          <span><Trophy /></span>
+          <div><b>Liga</b><small>Classificação e líderes</small></div>
+        </button>
+      </nav>
       <div className="stat-grid">
         <StatCard
           label="Registro"
@@ -1216,23 +1624,25 @@ function Dashboard({
           )}
         </Panel>
         <Panel
-          title="Destaque do elenco"
+          title="Núcleo da franquia"
           action={
             <button className="text-button" onClick={() => open('roster')}>
-              Elenco
+              Ver elenco completo
             </button>
           }
         >
-          <div className="featured-player">
-            <PlayerFace player={top} />
-            <div>
-              <b>{top.name}</b>
-              <span>
-                {top.position} · OVR {top.overall}
-              </span>
-              <p>Perfil, atributos estimados e histórico de temporada.</p>
-            </div>
-            <Star className="gold" />
+          <div className="franchise-core">
+            {ownRoster.slice(0, 3).map((player, index) => (
+              <article key={player.id}>
+                <span>{index === 0 ? 'FRANCHISE' : index === 1 ? 'IMPACTO' : 'NÚCLEO'}</span>
+                <PlayerFace player={player} />
+                <div>
+                  <b>{player.name}</b>
+                  <small>{player.position} · #{player.jersey || '—'}</small>
+                </div>
+                <strong>{player.overall}</strong>
+              </article>
+            ))}
           </div>
         </Panel>
         <Panel
